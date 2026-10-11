@@ -6,13 +6,19 @@ const exported = {exports:{}};
 new Function('module',script)(exported);
 const daily = exported.exports.daily;
 const now = new Date('2026-10-11T03:00:00Z');
-assert.deepEqual(daily.bounds(now),{today:'2026-10-11',min:'2026-09-01'});
+assert.deepEqual(daily.bounds(now),{today:'2026-10-11'});
 assert.equal(daily.seed('2026-10-11'),20261011);
-for (const date of ['2026-09-01','2026-09-30','2026-10-11']) assert.equal(daily.resolve(date,now),date);
-for (const date of ['2026-08-31','2026-10-12','2027-01-01','2026-09-31','2026-2-03','invalid','',null]) assert.equal(daily.resolve(date,now),'2026-10-11');
+for (const date of ['0001-01-01','1900-01-01','2000-02-29','2025-01-01','2026-08-31','2026-09-01','2026-09-30','2026-10-11']) {
+  assert.equal(daily.isAllowed(date,now),true);
+  assert.equal(daily.resolve(date,now),date);
+}
+for (const date of ['2026-10-12','2027-01-01','2026-09-31','2026-2-03','invalid','',null]) {
+  assert.equal(daily.isAllowed(date,now),false);
+  assert.equal(daily.resolve(date,now),'2026-10-11');
+}
 assert.equal(daily.today(new Date('2026-10-10T14:59:59Z')),'2026-10-10');
 assert.equal(daily.today(new Date('2026-10-10T15:00:00Z')),'2026-10-11');
-assert.deepEqual(daily.bounds(new Date('2025-12-31T15:00:00Z')),{today:'2026-01-01',min:'2025-12-01'});
+assert.deepEqual(daily.bounds(new Date('2025-12-31T15:00:00Z')),{today:'2026-01-01'});
 assert.equal(daily.isDate('2024-02-29'),true);
 assert.equal(daily.isDate('2026-02-29'),false);
 assert.equal(daily.isDate('2026-04-31'),false);
