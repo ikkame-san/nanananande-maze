@@ -64,6 +64,8 @@
     .elapsed time { margin-left:8px; color:var(--paper); font-weight:700; }
     .play-card.is-cleared .next-row { flex-direction:column; align-items:flex-start; gap:8px; }
     .play-card.is-cleared .next-char { font-size:36px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .share-x { display:block; margin-top:20px; padding:14px 10px; border-radius:9px; background:var(--paper); color:var(--ink); text-align:center; text-decoration:none; font-size:18px; font-weight:800; }
+    .share-x:hover { background:#e9eddf; }
     .sequence { display:flex; gap:5px; margin-top:18px; }
     .chip { flex:1; height:31px; display:grid; place-items:center; border:1px solid #466354; border-radius:6px; font-size:12px; color:#d3ddcf; }
     .chip.active { background:#f4f3df; color:var(--ink); border-color:#f4f3df; }
@@ -145,6 +147,7 @@
         <div class="next-row" role="status" aria-live="polite"><p class="next-label" id="next-label">次は</p><span id="next-char" class="next-char">な</span></div>
         <p class="elapsed" id="elapsed">経過時間<time id="elapsed-time">0:00</time></p>
         <div id="sequence" class="sequence" aria-label="な、な、な、な、ん、で、の順で繰り返します"></div>
+        <a id="share-x" class="share-x" target="_blank" rel="noopener noreferrer" hidden>Xでタイムを共有</a>
       </section>
       <div>
         <button id="new" class="new-button" type="button">今日の迷路</button>
@@ -429,11 +432,12 @@ if (typeof document !== 'undefined') (() => {
   function makeProblemSheet() {
     // Create a clean problem from its letters, never from the player's route or answer overlay.
     const sheet = svgNode('svg', {xmlns:'http://www.w3.org/2000/svg', viewBox:`0 0 ${sheetSize} ${sheetSize}`, width:sheetSize, height:sheetSize, class:'problem-sheet', role:'img', 'aria-label':`ななななんで迷路の問題。タイトル、循環するルール図、${COUNT}マスの迷路。`, 'font-family':'"Yu Gothic", Meiryo, sans-serif'});
-    sheet.append(svgNode('title', {}, 'ななななんで迷路'));
+    sheet.append(svgNode('title', {}, `ななななんで迷路 ${selectedDate}`));
     sheet.append(svgNode('rect', {width:sheetSize, height:sheetSize, fill:'#f3c6a6'}));
     sheet.append(svgNode('rect', {x:24,y:24,width:1152,height:1152,rx:26,fill:'#fffdf8',stroke:'#e1c9b4','stroke-width':1.5}));
     const line = (x,y,size,value,extra={}) => sheet.append(svgNode('text', {x,y,fill:'#193f36','font-size':size,'text-anchor':'middle',...extra},value));
     line(600,95,52,'ななななんで迷路',{'font-weight':800,'letter-spacing':-2});
+    line(600,126,24,selectedDate.replaceAll('-','/'),{fill:'#52665c','font-weight':700});
     sheet.append(svgNode('rect', {x:80,y:140,width:1040,height:226,rx:20,fill:'#fff',stroke:'#bac8bb','stroke-width':1.5}));
     line(104,177,26,'ルール',{'text-anchor':'start','font-weight':800});
     line(104,208,21,'スタートの「な」を1文字目に、この順番でゴールへ。',{'text-anchor':'start','font-weight':700});
@@ -534,6 +538,17 @@ if (typeof document !== 'undefined') (() => {
     $('next-char').textContent = won ? formatTime(clearTime,true) : needed;
     $('elapsed').hidden = won;
     $('sequence').hidden = won;
+    const share = $('share-x');
+    share.hidden = !won || busy || clearTime === null;
+    if (share.hidden) share.removeAttribute('href');
+    else {
+      const puzzleUrl = new URL('https://ikkame-san.github.io/nanananande-maze/');
+      puzzleUrl.searchParams.set('date',selectedDate);
+      const intent = new URL('https://x.com/intent/tweet');
+      intent.searchParams.set('text',`ななななんで迷路 ${selectedDate.replaceAll('-','/')} をクリア！\nクリア時間 ${formatTime(clearTime,true)}\n#ななななんで迷路`);
+      intent.searchParams.set('url',puzzleUrl.href);
+      share.href = intent.href;
+    }
     updateTimer();
     $('sequence').replaceChildren(...WORD.map((char,i) => {
       const chip = document.createElement('span'); chip.className = `chip${!won && i === trail.length % WORD.length ? ' active' : ''}`; chip.textContent = char;
@@ -568,6 +583,7 @@ if (typeof document !== 'undefined') (() => {
     if (!DailyPuzzle.isAllowed(date)) { refreshDates(); notify('先月1日から今日までの日付を選んでください。'); return; }
     busy = true; $('new').disabled = true; $('new').textContent = '迷路をつくっています…';
     $('puzzle-date').disabled = true;
+    $('share-x').hidden = true; $('share-x').removeAttribute('href');
     ['undo','reset','save-image'].forEach(id => $(id).disabled = true);
     $('maze').setAttribute('aria-busy','true');
     await new Promise(resolve => setTimeout(resolve,30));
