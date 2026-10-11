@@ -54,9 +54,13 @@
     .sidebar { display:flex; flex-direction:column; gap:16px; }
     .play-card { padding:24px; background:var(--ink); color:var(--paper); border-radius:18px; }
     .play-card .section-label { color:#c1d5c5; }
-    .next-label { font-size:12px; color:#bdd0c1; margin:0 0 2px; }
-    .next-row { display:flex; align-items:center; justify-content:space-between; }
+    .next-label { font-size:18px; font-weight:700; color:#bdd0c1; margin:0; }
+    .next-row { display:flex; align-items:center; gap:16px; }
     .next-char { font-size:59px; font-weight:700; line-height:1.25; }
+    .elapsed { margin:12px 0 0; font-size:14px; color:#bdd0c1; font-variant-numeric:tabular-nums; }
+    .elapsed time { margin-left:8px; color:var(--paper); font-weight:700; }
+    .play-card.is-cleared .next-row { flex-direction:column; align-items:flex-start; gap:8px; }
+    .play-card.is-cleared .next-char { font-size:36px; font-variant-numeric:tabular-nums; white-space:nowrap; }
     .sequence { display:flex; gap:5px; margin-top:18px; }
     .chip { flex:1; height:31px; display:grid; place-items:center; border:1px solid #466354; border-radius:6px; font-size:12px; color:#d3ddcf; }
     .chip.active { background:#f4f3df; color:var(--ink); border-color:#f4f3df; }
@@ -66,6 +70,13 @@
     .secondary { border:1px solid #cdd6c8; background:transparent; border-radius:9px; padding:14px 8px; font-size:17px; font-weight:700; color:var(--ink); }
     #save-image { grid-column:1/-1; }
     .secondary:hover:not(:disabled) { background:#e9eddf; }
+    .confirm-dialog { width:calc(100% - 32px); max-width:400px; padding:24px; border:1px solid var(--line); border-radius:18px; background:#fffef8; color:var(--ink); box-shadow:0 18px 60px #193f3633; }
+    .confirm-dialog::backdrop { background:#193f3666; }
+    .confirm-dialog h2 { margin:0 0 12px; font-size:21px; line-height:1.5; }
+    .confirm-dialog p { margin:0 0 22px; font-size:15px; line-height:1.8; }
+    .confirm-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .confirm-actions button { font-size:17px; font-weight:700; border-radius:9px; padding:13px 8px; border:1px solid #cdd6c8; background:transparent; color:var(--ink); }
+    .confirm-actions .confirm-accept { background:var(--orange); border-color:var(--orange); color:white; }
     .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); padding:12px 21px; border-radius:10px; color:#fff; background:var(--ink); font-size:12px; box-shadow:0 8px 25px #193f3622; max-width:90vw; text-align:center; z-index:5; }
     [hidden] { display:none!important; }
     .print-output { display:none; }
@@ -85,8 +96,10 @@
       .sidebar { display:grid; grid-template-columns:1fr; gap:14px; }
       .play-card { padding:19px; display:grid; grid-template-columns:1fr 1fr; gap:0 20px; }
       .play-card .section-label { grid-column:1/-1; margin-bottom:12px; }
-      .next-label { margin:0; grid-column:1; } .next-row { grid-column:1; } .next-char { font-size:40px; }
-      .sequence { grid-column:2; grid-row:1 / 3; align-items:center; margin:0; gap:4px; }
+      .next-label { font-size:16px; } .next-row { grid-column:1; gap:12px; } .next-char { font-size:40px; }
+      .sequence { grid-column:2; grid-row:1; align-items:center; margin:0; gap:4px; }
+      .elapsed { grid-column:1/-1; }
+      .play-card.is-cleared { display:block; }
       .chip { height:28px; font-size:11px; }
     }
     @media(prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none!important; transition:none!important; } }
@@ -121,9 +134,9 @@
       <div class="board"><svg id="maze" viewBox="28 28 390.12 313" role="group" aria-label="迷路。スタートの「な」から隣のマスを選んでください。"></svg></div>
     </section>
     <aside class="sidebar" aria-label="遊び方と操作">
-      <section class="play-card" aria-label="現在の状態">
-        <p class="next-label" id="next-label">次にすすむ文字</p>
-        <div class="next-row"><span id="next-char" class="next-char">な</span></div>
+      <section class="play-card" id="play-card" aria-label="現在の状態">
+        <div class="next-row" role="status" aria-live="polite"><p class="next-label" id="next-label">次は</p><span id="next-char" class="next-char">な</span></div>
+        <p class="elapsed" id="elapsed">経過時間<time id="elapsed-time">0:00</time></p>
         <div id="sequence" class="sequence" aria-label="な、な、な、な、ん、で、の順で繰り返します"></div>
       </section>
       <div>
@@ -135,6 +148,14 @@
 </div>
 <div id="print-output" class="print-output" aria-hidden="true"></div>
 <div class="toast" id="toast" role="status" hidden></div>
+<dialog class="confirm-dialog" id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-description">
+  <h2 id="confirm-title">はじめからやり直しますか？</h2>
+  <p id="confirm-description">進み具合と計測時間がリセットされます。</p>
+  <form method="dialog" class="confirm-actions">
+    <button type="submit" value="cancel" autofocus>キャンセル</button>
+    <button type="submit" value="confirm" class="confirm-accept" id="confirm-accept">やり直す</button>
+  </form>
+</dialog>
 <noscript>この迷路を遊ぶには、ブラウザのJavaScriptを有効にしてください。</noscript>
 <script>
 'use strict';
@@ -315,7 +336,17 @@ if (typeof module !== 'undefined') module.exports = MazeEngine;
 if (typeof document !== 'undefined') (() => {
   const $ = id => document.getElementById(id);
   const {WORD, COUNT, ROWS, ROW_LENGTHS, cells, neighbors} = MazeEngine;
-  let puzzle, trail = [], busy = false, toastTimer;
+  let puzzle, trail = [], busy = false, toastTimer, timerStartedAt = 0, clearTime = null, pendingRestart = null;
+  function formatTime(milliseconds, precise = false) {
+    const tenths = Math.floor(Math.max(0,milliseconds) / 100);
+    const minutes = Math.floor(tenths / 600), seconds = Math.floor(tenths / 10) % 60;
+    return `${minutes}:${String(seconds).padStart(2,'0')}${precise ? `.${tenths % 10}` : ''}`;
+  }
+  function startTimer() { timerStartedAt = performance.now(); clearTime = null; }
+  function updateTimer() {
+    if (!puzzle || busy) return;
+    $('elapsed-time').textContent = formatTime(clearTime ?? performance.now() - timerStartedAt);
+  }
   const radius = 27, width = Math.sqrt(3) * radius, padding = 36;
   const letterColors = {'な':'#193f36', 'ん':'#ce5824', 'で':'#128574'};
   const sheetSize = 1200;
@@ -457,8 +488,12 @@ if (typeof document !== 'undefined') (() => {
     });
     const routePoints = route => route.map(i => `${centers[i].x},${centers[i].y}`).join(' ');
     $('trail-route').setAttribute('points', routePoints(trail));
-    $('next-label').textContent = won ? 'ゴールに到着！' : '次にすすむ文字';
-    $('next-char').textContent = won ? '✓' : needed;
+    $('play-card').classList.toggle('is-cleared',won);
+    $('next-label').textContent = won ? 'クリア時間' : '次は';
+    $('next-char').textContent = won ? formatTime(clearTime,true) : needed;
+    $('elapsed').hidden = won;
+    $('sequence').hidden = won;
+    updateTimer();
     $('sequence').replaceChildren(...WORD.map((char,i) => {
       const chip = document.createElement('span'); chip.className = `chip${!won && i === trail.length % WORD.length ? ' active' : ''}`; chip.textContent = char;
       if (!won && i === trail.length % WORD.length) chip.setAttribute('aria-current','step');
@@ -482,10 +517,11 @@ if (typeof document !== 'undefined') (() => {
       return;
     }
     $('toast').hidden = true; clearTimeout(toastTimer);
-    trail.push(cell); update();
-    if (cell === COUNT - 1) notify('クリア！「ななななんで」の道、完成です。');
+    trail.push(cell);
+    if (cell === COUNT - 1) clearTime = performance.now() - timerStartedAt;
+    update();
   }
-  function undo() { if (busy || trail.length <= 1) return; trail.pop(); update(); }
+  function undo() { if (busy || trail.length <= 1) return; trail.pop(); clearTime = null; update(); }
   function newSeed() { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0]; }
   async function newPuzzle(seed) {
     if (busy) return;
@@ -495,6 +531,7 @@ if (typeof document !== 'undefined') (() => {
     await new Promise(resolve => setTimeout(resolve,30));
     try {
       puzzle = MazeEngine.generate(seed); trail = [0];
+      startTimer();
       $('toast').hidden = true; clearTimeout(toastTimer);
       // Store only the seed in the URL, so reloading or sharing reproduces this board.
       try { const url = new URL(location.href); url.searchParams.set('seed',String(puzzle.seed)); history.replaceState(null,'',url); } catch (_) { /* file previews may restrict history */ }
@@ -509,11 +546,27 @@ if (typeof document !== 'undefined') (() => {
       if (puzzle) update();
     }
   }
-  $('new').addEventListener('click', () => newPuzzle(newSeed()));
+  function confirmRestart(action) {
+    if (busy || $('confirm-dialog').open) return;
+    if (!puzzle) { if (action === 'new') newPuzzle(newSeed()); return; }
+    pendingRestart = action;
+    $('confirm-title').textContent = action === 'new' ? 'あたらしい迷路に変えますか？' : 'はじめからやり直しますか？';
+    $('confirm-accept').textContent = action === 'new' ? '変更する' : 'やり直す';
+    $('confirm-dialog').returnValue = '';
+    $('confirm-dialog').showModal();
+  }
+  $('confirm-dialog').addEventListener('close', () => {
+    const action = pendingRestart; pendingRestart = null;
+    if ($('confirm-dialog').returnValue !== 'confirm' || !action || busy || !puzzle) return;
+    if (action === 'new') { newPuzzle(newSeed()); return; }
+    trail = [0]; startTimer(); $('toast').hidden = true; clearTimeout(toastTimer); update();
+  });
+  $('new').addEventListener('click', () => confirmRestart('new'));
   $('undo').addEventListener('click',undo);
-  $('reset').addEventListener('click', () => { if (busy || !puzzle) return; trail = [0]; $('toast').hidden = true; update(); });
+  $('reset').addEventListener('click', () => confirmRestart('reset'));
   $('save-image').addEventListener('click',saveImage);
   window.addEventListener('beforeprint',preparePrint);
+  setInterval(updateTimer,100);
   const rawSeed = new URLSearchParams(location.search).get('seed');
   const seed = rawSeed !== null && /^\d{1,10}$/.test(rawSeed) && Number(rawSeed) <= 0xffffffff ? Number(rawSeed) : newSeed();
   newPuzzle(seed);
