@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#193f36">
+  <title>ななななんで迷路</title>
+  <style>
+    :root { --paper:#f7f5ed; --ink:#193f36; --muted:#708079; --line:#dce2d5; --orange:#e47545; --pale:#edf0e5; --mint:#d4e9dd; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif; }
+    button { font:inherit; cursor:pointer; }
+    button:focus-visible, a:focus-visible { outline:3px solid var(--orange); outline-offset:4px; }
+    button:disabled { opacity:.4; cursor:default; }
+    .wrap { max-width:1200px; padding:0 38px; margin:0 auto; }
+    .page-header { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,46%); gap:28px; align-items:start; padding:28px 0 20px; }
+    h1 { font-size:clamp(26px,3.4vw,40px); line-height:1.4; letter-spacing:-.05em; margin:14px 0 0; font-weight:800; }
+    .instructions { margin:0; padding:13px 17px; border:1px solid #bac8bb; border-radius:15px; }
+    .instructions h2 { font-size:18px; font-weight:800; margin:0 0 7px; }
+    .instructions p { font-size:14px; font-weight:700; line-height:1.8; margin:0; }
+    .rule-diagram { display:block; width:100%; height:auto; max-height:none; margin:6px auto 2px; }
+    .rule-list { margin:6px 0 0; padding-left:1.2em; color:#52665c; font-size:14px; font-weight:700; line-height:1.8; }
+    .verified { display:flex; gap:7px; align-items:center; font-size:10px; color:var(--muted); }
+    .verified i { width:7px; height:7px; background:#609878; border-radius:50%; }
+    .layout { display:grid; grid-template-columns:minmax(0,1fr) 286px; gap:22px; align-items:start; }
+    .board-card { background:#fffef8; border:1px solid var(--line); border-radius:18px; overflow:hidden; }
+    .board-top { padding:19px 23px 0; display:flex; justify-content:space-between; align-items:center; }
+    .section-label { font-size:10px; letter-spacing:.17em; font-weight:700; }
+    .section-label span { color:#97a39a; margin-right:9px; }
+    .count-label { font-size:11px; color:var(--muted); }
+    .board { position:relative; padding:0 10px; }
+    svg { display:block; width:100%; max-height:585px; margin:0 auto; touch-action:manipulation; }
+    .hex { cursor:pointer; outline:none; }
+    .tile { fill:#f2f3e9; stroke:#d8dfd0; stroke-width:1.2; transition:fill .16s,stroke .16s; }
+    .hex:hover .tile { fill:#e8eddf; stroke:#93ac98; }
+    .hex:focus-visible .tile { stroke:var(--orange); stroke-width:3; }
+    .letter { fill:var(--ink); font-size:19px; font-weight:700; text-anchor:middle; pointer-events:none; dominant-baseline:central; }
+    .hex[data-char="ん"] .letter { fill:#ce5824; }
+    .hex[data-char="で"] .letter { fill:#128574; }
+    .hex.visited .tile { fill:#dceadd; stroke:#9ebca5; }
+    .hex.current .tile { fill:var(--ink); stroke:var(--ink); }
+    .hex.current .letter { fill:white; }
+    .hex.start .tile, .hex.goal .tile { stroke:var(--ink); stroke-width:2; }
+    .hex.goal .tile { fill:#f8e6d6; stroke:var(--orange); }
+    .hex.goal.current .tile { fill:var(--ink); stroke:var(--ink); }
+    .endpoint { fill:var(--ink); font-size:6.5px; font-weight:800; letter-spacing:.5px; text-anchor:middle; pointer-events:none; }
+    .hex.goal .endpoint { fill:#ad572f; }
+    .hex.current .endpoint { fill:#b9d1bf; }
+    .route { fill:none; stroke:#81a98c; stroke-width:7; stroke-linecap:round; stroke-linejoin:round; opacity:.45; pointer-events:none; }
+    .answer-route { fill:none; stroke:var(--orange); stroke-width:4; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:3 7; opacity:.9; pointer-events:none; }
+    .hint-ring { fill:none; stroke:var(--orange); stroke-width:3; stroke-dasharray:3 3; pointer-events:none; }
+    .hex.wrong .tile { animation:wrong .45s; }
+    @keyframes wrong { 25%,75% { fill:#f6c1ad; stroke:#cf6c47; } }
+    .board-bottom { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:15px 23px; border-top:1px solid var(--line); background:#fafaf3; font-size:11px; }
+    .legend { display:flex; align-items:center; gap:7px; color:var(--muted); }
+    .legend-dot { width:8px; height:8px; border-radius:50%; background:var(--ink); }
+    .legend-dot.goal-dot { background:var(--orange); margin-left:11px; }
+    .text-button { border:0; padding:3px 0; background:transparent; color:var(--muted); font-size:11px; text-decoration:underline; text-underline-offset:4px; }
+    .sidebar { display:flex; flex-direction:column; gap:16px; }
+    .play-card { padding:24px; background:var(--ink); color:var(--paper); border-radius:18px; }
+    .play-card .section-label { color:#c1d5c5; }
+    .next-label { font-size:12px; color:#bdd0c1; margin:0 0 2px; }
+    .next-row { display:flex; align-items:center; justify-content:space-between; }
+    .next-char { font-size:59px; font-weight:700; line-height:1.25; }
+    .arrow { font-size:30px; color:#86a18e; }
+    .sequence { display:flex; gap:5px; margin-top:18px; }
+    .chip { flex:1; height:31px; display:grid; place-items:center; border:1px solid #466354; border-radius:6px; font-size:12px; color:#d3ddcf; }
+    .chip.active { background:#f4f3df; color:var(--ink); border-color:#f4f3df; }
+    .sequence-note { font-size:10px; color:#a7c0ae; margin:9px 0 20px; text-align:right; }
+    .progress { display:flex; justify-content:space-between; border-top:1px solid #466354; padding-top:17px; font-size:11px; color:#bdd0c1; }
+    .progress strong { font-size:17px; color:#f7f5ed; margin-right:4px; }
+    .status { margin:14px 0 0; font-size:11px; line-height:1.8; min-height:40px; color:#d3ddcf; }
+    .new-button { width:100%; border:0; border-radius:11px; padding:15px 10px; background:var(--orange); color:white; font-weight:700; font-size:13px; box-shadow:0 4px 0 #cc6438; transition:transform .15s; }
+    .new-button:hover { transform:translateY(-1px); }
+    .controls { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:12px; }
+    .secondary { border:1px solid #cdd6c8; background:transparent; border-radius:9px; padding:11px 5px; font-size:12px; color:var(--ink); }
+    .secondary:hover:not(:disabled) { background:#e9eddf; }
+    footer { display:flex; justify-content:space-between; gap:15px; padding:24px 0; font-size:10px; color:var(--muted); letter-spacing:.02em; }
+    .seed { font-variant-numeric:tabular-nums; }
+    .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); padding:12px 21px; border-radius:10px; color:#fff; background:var(--ink); font-size:12px; box-shadow:0 8px 25px #193f3622; max-width:90vw; text-align:center; z-index:5; }
+    [hidden] { display:none!important; }
+    .print-output { display:none; }
+    .problem-sheet { display:block; width:100%; height:auto; max-height:none; margin:0; }
+    @media(max-width:800px) {
+      .wrap { padding:0 20px; }
+      .layout { grid-template-columns:minmax(0,1fr) 240px; gap:15px; } .play-card { padding:20px; }
+      .board-top { padding:18px 17px 8px; } .board-bottom { padding:14px 17px; } .board { padding:0; }
+    }
+    @media(max-width:620px) {
+      .wrap { padding:0 16px; } .page-header { grid-template-columns:1fr; gap:14px; padding:22px 0 18px; }
+      h1 { margin:0; } .instructions { width:100%; max-width:460px; justify-self:end; }
+      .instructions p { font-size:13px; } .rule-list { font-size:13px; }
+      .layout { display:flex; flex-direction:column; gap:15px; } .board-card, .sidebar { width:100%; }
+      .sidebar { display:grid; grid-template-columns:1fr; gap:14px; }
+      .play-card { padding:19px; display:grid; grid-template-columns:1fr 1fr; gap:0 20px; }
+      .play-card .section-label { grid-column:1/-1; margin-bottom:12px; }
+      .next-label { margin:0; grid-column:1; } .next-row { grid-column:1; } .next-char { font-size:40px; }
+      .sequence { grid-column:2; grid-row:1 / 3; align-items:center; margin:0; gap:4px; }
+      .chip { height:28px; font-size:11px; } .sequence-note { display:none; }
+      .progress { grid-column:1; border:0; padding-top:9px; } .status { grid-column:2; margin:6px 0 0; min-height:0; font-size:10px; }
+      footer { font-size:9px; line-height:1.7; } .board-bottom { padding:13px 16px; }
+    }
+    @media(prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none!important; transition:none!important; } }
+    @media print {
+      @page { size:A4 portrait; margin:10mm; }
+      html, body { margin:0; padding:0; background:white; }
+      body > :not(.print-output) { display:none!important; }
+      .print-output { display:block!important; width:100%; }
+      .print-output .problem-sheet { display:block; width:100%; max-height:270mm; break-inside:avoid; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header class="page-header">
+    <h1>ななななんで迷路</h1>
+    <section class="instructions" aria-label="あそびかた">
+    <h2>ルール</h2>
+    <p>スタートの「な」を1文字目に、この順番でゴールへ。</p>
+    <div id="rule-diagram"></div>
+    <ul class="rule-list">
+      <li>辺で接するマスへ進む</li>
+      <li>同じマスは2度通らない</li>
+      <li>すべてのマスを通る必要はない</li>
+    </ul>
+    </section>
+  </header>
+  <main class="layout">
+    <section class="board-card" aria-label="六角形の迷路">
+      <div class="board-top"><span class="count-label" id="cell-count">53 マス</span><div class="verified"><i aria-hidden="true"></i><span id="verified">盤面を準備中</span></div></div>
+      <div class="board"><svg id="maze" viewBox="0 0 446.12 369" role="group" aria-label="迷路。スタートの「な」から隣のマスを選んでください。"></svg></div>
+      <div class="board-bottom"><div class="legend"><span class="legend-dot"></span>スタート<span class="legend-dot goal-dot"></span>ゴール</div><button id="answer" class="text-button" type="button" aria-pressed="false">答えを見る</button></div>
+    </section>
+    <aside class="sidebar" aria-label="遊び方と操作">
+      <section class="play-card" aria-label="現在の状態">
+        <p class="next-label" id="next-label">次にすすむ文字</p>
+        <div class="next-row"><span id="next-char" class="next-char">な</span><span class="arrow" aria-hidden="true">↗</span></div>
+        <div id="sequence" class="sequence" aria-label="な、な、な、な、ん、で、の順で繰り返します"></div>
+        <p class="sequence-note">この6文字を、くり返し。</p>
+        <div class="progress"><span><strong id="steps">1</strong>マス進んだ</span><span id="lap">1 周目</span></div>
+        <p id="status" class="status" role="status" aria-live="polite">スタートから、隣の「な」へ。</p>
+      </section>
+      <div>
+        <button id="new" class="new-button" type="button">あたらしい迷路 <span aria-hidden="true">↗</span></button>
+        <div class="controls"><button id="undo" class="secondary" type="button" disabled>← ひとつ戻る</button><button id="reset" class="secondary" type="button">はじめから</button><button id="hint" class="secondary" type="button">ヒント</button><button id="save-image" class="secondary" type="button">画像として保存</button></div>
+      </div>
+    </aside>
+  </main>
+  <footer><span class="seed" id="seed">問題番号 —</span></footer>
+</div>
+<div id="print-output" class="print-output" aria-hidden="true"></div>
+<div class="toast" id="toast" role="status" hidden></div>
+<noscript>この迷路を遊ぶには、ブラウザのJavaScriptを有効にしてください。</noscript>
+<script>
+'use strict';
+// Pure generation engine; also exercised by verify.cjs without a browser.
+const MazeEngine = (() => {
+  const ROW_LENGTHS = [8,7,8,7,8,7,8], ROWS = ROW_LENGTHS.length, COLS = Math.max(...ROW_LENGTHS);
+  const cells = ROW_LENGTHS.flatMap((length,row) => Array.from({length}, (_,col) => ({row,col})));
+  const COUNT = cells.length, indices = ROW_LENGTHS.map(() => []);
+  cells.forEach(({row,col},i) => indices[row][col] = i);
+  const PATH_LENGTH = 36, MAX_STRAIGHT_STEPS = 2, MIN_TURNS = 14;
+  const WORD = ['な', 'な', 'な', 'な', 'ん', 'で'];
+  const neighbors = cells.map(({row:r,col:c}) => {
+    const shift = r % 2;
+    return [[r,c-1],[r,c+1],[r-1,c-1+shift],[r-1,c+shift],[r+1,c-1+shift],[r+1,c+shift]]
+      .filter(([y,x]) => y >= 0 && y < ROWS && x >= 0 && x < ROW_LENGTHS[y]).map(([y,x]) => indices[y][x]);
+  });
+  const axial = cells.map(({row,col}) => [col - (row - row % 2) / 2, row]);
+  const direction = (a,b) => `${axial[b][0] - axial[a][0]},${axial[b][1] - axial[a][1]}`;
+  function rng(seed) {
+    return () => {
+      seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+      let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function shuffle(items, random) {
+    const result = [...items];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+  }
+  const distances = Array(COUNT).fill(Infinity);
+  distances[COUNT - 1] = 0;
+  const queue = [COUNT - 1];
+  for (let i = 0; i < queue.length; i++) for (const n of neighbors[queue[i]]) {
+    if (!Number.isFinite(distances[n])) { distances[n] = distances[queue[i]] + 1; queue.push(n); }
+  }
+  function findPath(random) {
+    const used = new Uint8Array(COUNT), path = [0], length = PATH_LENGTH;
+    const order = new Int16Array(COUNT).fill(-1);
+    used[0] = 1; order[0] = 0;
+    let budget = 50000;
+    function hasAlternativePrefix() {
+      const end = path.at(-1), phase = path.length % WORD.length;
+      const visited = new Uint8Array(COUNT);
+      visited[0] = 1;
+      let remaining = 5000;
+      function search(v,depth,different) {
+        // An unfinished search is rejected conservatively, never treated as unique.
+        if (--remaining < 0) return true;
+        if (v === end) return different && depth % WORD.length === phase;
+        for (const n of neighbors[v]) {
+          if (order[n] < 0 || visited[n] || WORD[order[n] % WORD.length] !== WORD[depth % WORD.length]) continue;
+          visited[n] = 1;
+          const found = search(n,depth+1,different || n !== path[depth]);
+          visited[n] = 0;
+          if (found) return true;
+        }
+        return false;
+      }
+      // An alternative with the same word phase can follow the remaining suffix
+      // unchanged, so it would inevitably be a second answer on the final board.
+      return search(0,1,false);
+    }
+    function dfs(v, previous = '', straight = 0, turns = 0) {
+      if (--budget < 0) return false;
+      if (path.length === length) return v === COUNT - 1 && turns >= MIN_TURNS;
+      const remaining = length - path.length;
+      if (v === COUNT - 1 || distances[v] > remaining || turns + remaining < MIN_TURNS) return false;
+      const options = neighbors[v].map(n => {
+        const d = direction(v,n);
+        return {n, d, score:random() + (d === previous ? .25 : 0)};
+      }).sort((a,b) => a.score - b.score);
+      for (const {n,d} of options) {
+        if (used[n] || ((n === COUNT - 1) !== (remaining === 1))) continue;
+        // A contact that skips a whole six-letter cycle guarantees a second
+        // answer. Prune that actual shortcut early; other contacts are allowed.
+        if (neighbors[n].some(k => used[k] && k !== v && (path.length - order[k]) % WORD.length === 1)) continue;
+        if (d === previous && straight >= MAX_STRAIGHT_STEPS) continue;
+        // Avoid long staircases too: every five moves must use at least three directions.
+        if (path.length >= 5) {
+          const recent = new Set([d]);
+          for (let j = path.length - 4; j < path.length; j++) recent.add(direction(path[j-1],path[j]));
+          if (recent.size < 3) continue;
+        }
+        const touchesEarlier = neighbors[n].some(k => used[k] && k !== v);
+        used[n] = 1; order[n] = path.length; path.push(n);
+        if ((!touchesEarlier || !hasAlternativePrefix()) && dfs(n,d,d === previous ? straight + 1 : 1,turns + (previous && d !== previous ? 1 : 0))) return true;
+        path.pop(); used[n] = 0; order[n] = -1;
+      }
+      return false;
+    }
+    return dfs(0) ? path : null;
+  }
+  function solve(labels, limit = 2, budget = 250000) {
+    if (labels.length !== COUNT || labels[0] !== 'な' || labels[COUNT-1] !== 'で') return {solutions:[], complete:true, visits:0};
+    const used = new Uint8Array(COUNT), path = [0], solutions = [];
+    used[0] = 1;
+    let visits = 0, complete = true;
+    function dfs(v) {
+      if (++visits > budget) { complete = false; return true; }
+      if (v === COUNT - 1) { solutions.push([...path]); return solutions.length >= limit; }
+      const needed = WORD[path.length % WORD.length];
+      for (const n of neighbors[v]) if (!used[n] && labels[n] === needed) {
+        used[n] = 1; path.push(n);
+        const stop = dfs(n);
+        path.pop(); used[n] = 0;
+        if (stop) return true;
+      }
+      return false;
+    }
+    dfs(0);
+    return {solutions, complete, visits};
+  }
+  // A verified base ensures generation finishes even when random path search is unlucky.
+  const fallback = {
+    labels: Array.from('ななんなななでななんでんでななんなんななででんなでんんなななななでなでなんなんなでなでんななでななでなんで'),
+    path: [0,1,8,16,17,24,23,30,31,39,38,46,47,48,41,33,26,34,35,27,19,18,11,12,4,5,13,14,22,21,28,29,37,44,51,52]
+  };
+  function isUnique(labels) {
+    const result = solve(labels);
+    return result.complete && result.solutions.length === 1;
+  }
+  function generate(seed) {
+    const random = rng(seed);
+    let labels, path;
+    for (let attempt = 0; attempt < 400; attempt++) {
+      const candidate = findPath(random);
+      if (!candidate) continue;
+      const letters = Array(COUNT).fill(null), positions = new Set(candidate), choices = [];
+      candidate.forEach((v,i) => letters[v] = WORD[i % WORD.length]);
+      // Touching parts of the route are allowed. Reject only an actual alternative
+      // solution among its fixed letters, which decoy changes could never repair.
+      if (!isUnique(letters)) continue;
+      for (let i = 0; i < COUNT; i++) if (letters[i] === null) {
+        // Prevent an off-path cell from substituting for a corner of the answer.
+        const forbidden = new Set();
+        for (let p = 1; p < candidate.length - 1; p++) {
+          if (neighbors[i].includes(candidate[p-1]) && neighbors[i].includes(candidate[p+1])) forbidden.add(WORD[p % WORD.length]);
+        }
+        const allowed = ['な','ん','で'].filter(c => !forbidden.has(c));
+        choices[i] = allowed;
+        if (!allowed.length) break;
+        letters[i] = allowed[Math.floor(random() * allowed.length)];
+      }
+      if (letters.includes(null)) continue;
+      // Break witnessed alternative routes without changing any answer letters.
+      for (let repair = 0; repair < 80; repair++) {
+        const check = solve(letters);
+        if (check.complete && check.solutions.length === 1) { labels = letters; path = candidate; break; }
+        const alternate = check.solutions.find(p => p.some((v,i) => v !== candidate[i]));
+        if (!alternate) break;
+        const cells = alternate.filter(v => !positions.has(v) && choices[v].length > 1);
+        if (!cells.length) break;
+        const cell = cells[Math.floor(random() * cells.length)];
+        const options = choices[cell].filter(char => char !== letters[cell]);
+        letters[cell] = options[Math.floor(random() * options.length)];
+      }
+      if (labels) break;
+    }
+    if (!labels) { labels = [...fallback.labels]; path = [...fallback.path]; }
+    const route = new Set(path);
+    // Add distractions only when the full solver proves there is still one answer.
+    for (const cell of shuffle(Array.from({length:COUNT}, (_,i) => i).filter(i => !route.has(i)), random)) {
+      const before = labels[cell], choice = random();
+      labels[cell] = choice < .6 ? 'な' : choice < .8 ? 'ん' : 'で';
+      if (!isUnique(labels)) labels[cell] = before;
+    }
+    if (!isUnique(labels)) throw new Error('正解が1通りの盤面を生成できませんでした。');
+    return {seed:seed >>> 0, labels, path};
+  }
+  return {COLS, ROWS, ROW_LENGTHS, cells, COUNT, PATH_LENGTH, MAX_STRAIGHT_STEPS, MIN_TURNS, WORD, neighbors, solve, generate, fallback};
+})();
+if (typeof module !== 'undefined') module.exports = MazeEngine;
+if (typeof document !== 'undefined') (() => {
+  const $ = id => document.getElementById(id);
+  const {WORD, COUNT, ROWS, ROW_LENGTHS, cells, neighbors} = MazeEngine;
+  let puzzle, trail = [], showAnswer = false, hintCell = -1, busy = false, toastTimer;
+  const radius = 27, width = Math.sqrt(3) * radius, padding = 36;
+  const letterColors = {'な':'#193f36', 'ん':'#ce5824', 'で':'#128574'};
+  const sheetSize = 1200;
+  const boardWidth = width * Math.max(...ROW_LENGTHS.map((length,row) => length + .5 * (row % 2))) + padding * 2;
+  $('maze').setAttribute('viewBox', `0 0 ${boardWidth} ${(2 + 1.5 * (ROWS - 1)) * radius + padding * 2}`);
+  $('cell-count').textContent = `${COUNT} マス`;
+  const centers = cells.map(({row,col}) => {
+    return {x:padding + width / 2 + width * (col + .5 * (row % 2)), y:padding + radius + row * 1.5 * radius};
+  });
+  function svgNode(tag, attrs, value) {
+    const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const [key,val] of Object.entries(attrs)) node.setAttribute(key, val);
+    if (value !== undefined) node.textContent = value;
+    return node;
+  }
+  function hexPoints(x,y,r) {
+    return Array.from({length:6}, (_,j) => {
+      const angle = (60 * j - 90) * Math.PI / 180;
+      return `${x + r * Math.cos(angle)},${y + r * Math.sin(angle)}`;
+    }).join(' ');
+  }
+  function makeRuleDiagram() {
+    const diagram = svgNode('svg', {viewBox:'0 0 576 138', class:'rule-diagram', role:'img', 'aria-label':'六角形の「な、な、な、な、ん、で」を順に進み、「で」から矢印で最初の「な」に戻って繰り返します。'});
+    WORD.forEach((char,i) => {
+      const x = 48 + i * 96;
+      diagram.append(svgNode('polygon', {points:hexPoints(x,42,28), fill:'#fff', stroke:'#9eafa3', 'stroke-width':1.3}));
+      diagram.append(svgNode('text', {x, y:42, fill:letterColors[char], 'font-size':26, 'font-weight':800, 'text-anchor':'middle', 'dominant-baseline':'central'}, char));
+      if (i < WORD.length - 1) {
+        const end = x + 62;
+        diagram.append(svgNode('path', {d:`M${x+34} 42 H${end} M${end-6} 37 L${end} 42 L${end-6} 47`, fill:'none', stroke:'#7a9183', 'stroke-width':1.8, 'stroke-linecap':'round', 'stroke-linejoin':'round'}));
+      }
+    });
+    diagram.append(svgNode('path', {d:'M528 78 V100 Q528 110 518 110 H58 Q48 110 48 100 V78 M43 84 L48 78 L53 84', fill:'none', stroke:'#7a9183', 'stroke-width':1.8, 'stroke-linecap':'round', 'stroke-linejoin':'round'}));
+    diagram.append(svgNode('text', {x:288, y:133, fill:'#52665c', 'font-size':16, 'font-weight':700, 'text-anchor':'middle'}, 'くり返す'));
+    return diagram;
+  }
+  $('rule-diagram').append(makeRuleDiagram());
+  function makeProblemSheet() {
+    // Create a clean problem from its letters, never from the player's route or answer overlay.
+    const sheet = svgNode('svg', {xmlns:'http://www.w3.org/2000/svg', viewBox:`0 0 ${sheetSize} ${sheetSize}`, width:sheetSize, height:sheetSize, class:'problem-sheet', role:'img', 'aria-label':`ななななんで迷路の問題。タイトル、循環するルール図、${COUNT}マスの迷路。`, 'font-family':'"Yu Gothic", Meiryo, sans-serif'});
+    sheet.append(svgNode('title', {}, 'ななななんで迷路'));
+    sheet.append(svgNode('rect', {width:sheetSize, height:sheetSize, fill:'#f3c6a6'}));
+    sheet.append(svgNode('rect', {x:24,y:24,width:1152,height:1152,rx:26,fill:'#fffdf8',stroke:'#e1c9b4','stroke-width':1.5}));
+    const line = (x,y,size,value,extra={}) => sheet.append(svgNode('text', {x,y,fill:'#193f36','font-size':size,'text-anchor':'middle',...extra},value));
+    line(600,95,52,'ななななんで迷路',{'font-weight':800,'letter-spacing':-2});
+    sheet.append(svgNode('rect', {x:80,y:140,width:1040,height:226,rx:20,fill:'#fff',stroke:'#bac8bb','stroke-width':1.5}));
+    line(104,177,26,'ルール',{'text-anchor':'start','font-weight':800});
+    line(104,208,21,'スタートの「な」を1文字目に、この順番でゴールへ。',{'text-anchor':'start','font-weight':700});
+    const diagram = makeRuleDiagram(), diagramGroup = svgNode('g', {transform:'translate(96 214) scale(1.03)'});
+    diagramGroup.append(...Array.from(diagram.childNodes)); sheet.append(diagramGroup);
+    sheet.append(svgNode('path', {d:'M718 168 V338',fill:'none',stroke:'#dce2d5','stroke-width':1.2}));
+    ['辺で接するマスへ進む','同じマスは2度通らない','すべてのマスを通る必要はない'].forEach((rule,i) => {
+      line(754,228 + i*42,22,`・${rule}`,{'text-anchor':'start',fill:'#52665c','font-weight':700});
+    });
+    const scale = 1170 / boardWidth;
+    const board = svgNode('g', {transform:`translate(15 290) scale(${scale})`, 'data-sheet-board':'true'});
+    puzzle.labels.forEach((char,i) => {
+      const {x,y} = centers[i], start = i === 0, goal = i === COUNT - 1;
+      board.append(svgNode('polygon', {points:hexPoints(x,y,radius-2), fill:start ? '#e5eee7' : goal ? '#fff0e3' : '#fdfdf9', stroke:start ? '#193f36' : goal ? '#ce7544' : '#9fac9c', 'stroke-width':start || goal ? 1.8 : .85}));
+      board.append(svgNode('text', {x,y:y+(start || goal ? 4 : 0),fill:letterColors[char],'font-size':19,'font-weight':650,'text-anchor':'middle','dominant-baseline':'central'},char));
+      if (start || goal) board.append(svgNode('text', {x,y:y-12,fill:goal ? '#ad572f' : '#193f36','font-size':6.6,'font-weight':700,'text-anchor':'middle'},start ? 'スタート' : 'ゴール'));
+    });
+    sheet.append(board);
+    return sheet;
+  }
+  function preparePrint() {
+    if (puzzle) $('print-output').replaceChildren(makeProblemSheet());
+  }
+  async function saveImage() {
+    const button = $('save-image');
+    if (button.disabled || busy || !puzzle) return;
+    button.disabled = true; button.textContent = '保存中…';
+    let sourceUrl;
+    try {
+      await document.fonts.ready;
+      const source = new XMLSerializer().serializeToString(makeProblemSheet());
+      sourceUrl = URL.createObjectURL(new Blob([source],{type:'image/svg+xml;charset=utf-8'}));
+      const img = new Image();
+      await new Promise((resolve,reject) => { img.onload = resolve; img.onerror = () => reject(new Error('画像を作成できませんでした')); img.src = sourceUrl; });
+      const canvas = document.createElement('canvas'); canvas.width = sheetSize; canvas.height = sheetSize;
+      canvas.getContext('2d').drawImage(img,0,0,sheetSize,sheetSize);
+      const blob = await new Promise((resolve,reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('画像を保存できませんでした')),'image/png'));
+      const url = URL.createObjectURL(blob), link = document.createElement('a');
+      link.href = url; link.download = `ななななんで迷路-${puzzle.seed.toString(16).toUpperCase().padStart(8,'0')}.png`;
+      document.body.append(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url),30000);
+      notify(`PNG画像を保存しました（${sheetSize} × ${sheetSize}）`);
+    } catch (_) {
+      notify('画像を保存できませんでした。もう一度お試しください。');
+    } finally {
+      if (sourceUrl) URL.revokeObjectURL(sourceUrl);
+      button.disabled = busy; button.textContent = '画像として保存';
+    }
+  }
+  function notify(message) {
+    $('toast').textContent = message; $('toast').hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').hidden = true, 3200);
+  }
+  function draw() {
+    const svg = $('maze'); svg.replaceChildren();
+    puzzle.labels.forEach((letter,i) => {
+      const {x,y} = centers[i], start = i === 0, goal = i === COUNT - 1;
+      const g = svgNode('g', {'class':`hex${start ? ' start' : ''}${goal ? ' goal' : ''}`, 'data-cell':i, 'data-char':letter, role:'button', tabindex:i === trail.at(-1) ? 0 : -1, 'aria-label':`${cells[i].row + 1}行${cells[i].col + 1}列、${letter}${start ? '、スタート' : ''}${goal ? '、ゴール' : ''}`});
+      const points = hexPoints(x,y,radius-2);
+      g.append(svgNode('polygon', {points, 'class':'tile'}));
+      g.append(svgNode('text', {x, y:y + (start || goal ? 4 : 0), 'class':'letter'}, letter));
+      if (start || goal) g.append(svgNode('text', {x, y:y - 12, 'class':'endpoint'}, start ? 'スタート' : 'ゴール'));
+      g.addEventListener('click', () => move(i));
+      g.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); move(i); return; }
+        const direction = {ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[event.key];
+        if (!direction) return;
+        event.preventDefault();
+        const candidates = neighbors[i].filter(n => (centers[n].x - x) * direction[0] + (centers[n].y - y) * direction[1] > 1);
+        candidates.sort((a,b) => {
+          const score = n => Math.abs((centers[n].x-x) * direction[1] - (centers[n].y-y) * direction[0]);
+          return score(a) - score(b);
+        });
+        if (candidates.length) {
+          const next = svg.querySelector(`[data-cell="${candidates[0]}"]`);
+          svg.querySelectorAll('.hex').forEach(el => el.setAttribute('tabindex','-1'));
+          next.setAttribute('tabindex','0'); next.focus();
+        }
+      });
+      svg.append(g);
+    });
+    svg.append(svgNode('polyline', {id:'trail-route', 'class':'route'}));
+    svg.append(svgNode('polyline', {id:'answer-route', 'class':'answer-route', visibility:'hidden'}));
+    svg.append(svgNode('circle', {id:'hint-ring', r:19, 'class':'hint-ring', visibility:'hidden'}));
+    update();
+  }
+  function update() {
+    const current = trail.at(-1), won = current === COUNT - 1;
+    const needed = WORD[trail.length % WORD.length];
+    $('maze').querySelectorAll('.hex').forEach((g,i) => {
+      g.classList.toggle('visited', trail.includes(i));
+      g.classList.toggle('current', i === current);
+      g.setAttribute('aria-pressed', String(trail.includes(i)));
+      g.setAttribute('tabindex', i === current ? '0' : '-1');
+    });
+    const routePoints = route => route.map(i => `${centers[i].x},${centers[i].y}`).join(' ');
+    $('trail-route').setAttribute('points', routePoints(trail));
+    $('answer-route').setAttribute('points', routePoints(puzzle.path));
+    $('answer-route').setAttribute('visibility', showAnswer ? 'visible' : 'hidden');
+    $('hint-ring').setAttribute('visibility', hintCell >= 0 ? 'visible' : 'hidden');
+    if (hintCell >= 0) { $('hint-ring').setAttribute('cx',centers[hintCell].x); $('hint-ring').setAttribute('cy',centers[hintCell].y); }
+    $('next-label').textContent = won ? 'ゴールに到着！' : '次にすすむ文字';
+    $('next-char').textContent = won ? '✓' : needed;
+    $('steps').textContent = trail.length;
+    $('lap').textContent = won ? 'CLEAR!' : `${Math.floor(trail.length / WORD.length) + 1} 周目`;
+    $('sequence').replaceChildren(...WORD.map((char,i) => {
+      const chip = document.createElement('span'); chip.className = `chip${!won && i === trail.length % WORD.length ? ' active' : ''}`; chip.textContent = char;
+      if (!won && i === trail.length % WORD.length) chip.setAttribute('aria-current','step');
+      return chip;
+    }));
+    $('undo').disabled = trail.length <= 1 || busy;
+    $('hint').disabled = won || busy;
+    $('answer').textContent = showAnswer ? '答えを隠す' : '答えを見る';
+    $('answer').setAttribute('aria-pressed', String(showAnswer));
+    const canMove = neighbors[current].some(n => !trail.includes(n) && puzzle.labels[n] === needed);
+    $('status').textContent = won ? 'おめでとう！ことばの道がつながりました。' : !canMove ? '行き止まりです。「ひとつ戻る」で別の道を探そう。' : trail.length === 1 ? 'スタートから、隣の「な」へ。' : `隣り合う「${needed}」へ進もう。`;
+  }
+  function move(cell) {
+    if (busy || !puzzle) return;
+    if (cell === trail.at(-1)) return;
+    if (trail.length > 1 && cell === trail.at(-2)) { undo(); return; }
+    if (trail.at(-1) === COUNT - 1) { notify('クリアしました！あたらしい迷路にも挑戦しよう。'); return; }
+    let error = '';
+    if (!neighbors[trail.at(-1)].includes(cell)) error = '辺で接しているマスに進もう。';
+    else if (trail.includes(cell)) error = '一度通ったマスには戻れません。「ひとつ戻る」を使おう。';
+    else if (puzzle.labels[cell] !== WORD[trail.length % WORD.length]) error = `次は「${WORD[trail.length % WORD.length]}」です。`;
+    if (error) {
+      notify(error);
+      const g = $('maze').querySelector(`[data-cell="${cell}"]`);
+      g.classList.remove('wrong'); requestAnimationFrame(() => { g.classList.add('wrong'); setTimeout(() => g.classList.remove('wrong'),500); });
+      return;
+    }
+    $('toast').hidden = true; clearTimeout(toastTimer);
+    trail.push(cell); hintCell = -1; update();
+    if (cell === COUNT - 1) notify('クリア！「ななななんで」の道、完成です。');
+  }
+  function undo() { if (busy || trail.length <= 1) return; trail.pop(); hintCell = -1; update(); }
+  function newSeed() { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0]; }
+  async function newPuzzle(seed) {
+    if (busy) return;
+    busy = true; $('new').disabled = true; $('new').textContent = '迷路をつくっています…';
+    ['undo','reset','hint','answer','save-image'].forEach(id => $(id).disabled = true);
+    $('verified').textContent = '正解の道を検査中';
+    $('maze').setAttribute('aria-busy','true');
+    await new Promise(resolve => setTimeout(resolve,30));
+    try {
+      puzzle = MazeEngine.generate(seed); trail = [0]; showAnswer = false; hintCell = -1;
+      $('toast').hidden = true; clearTimeout(toastTimer);
+      $('seed').textContent = `問題番号 ${puzzle.seed.toString(16).toUpperCase().padStart(8,'0')}`;
+      $('verified').textContent = '正解は、1通り。';
+      // Store only the seed in the URL, so reloading or sharing reproduces this board.
+      try { const url = new URL(location.href); url.searchParams.set('seed',String(puzzle.seed)); history.replaceState(null,'',url); } catch (_) { /* file previews may restrict history */ }
+      draw();
+    } catch (error) {
+      $('verified').textContent = puzzle ? '前の迷路を表示中' : '生成できませんでした';
+      notify('迷路の生成に失敗しました。あたらしい迷路を押してください。');
+      console.error(error);
+    } finally {
+      busy = false; $('new').disabled = false; $('new').innerHTML = 'あたらしい迷路 <span aria-hidden="true">↗</span>';
+      ['reset','answer','save-image'].forEach(id => $(id).disabled = !puzzle);
+      $('maze').setAttribute('aria-busy','false');
+      if (puzzle) update();
+    }
+  }
+  $('new').addEventListener('click', () => newPuzzle(newSeed()));
+  $('undo').addEventListener('click',undo);
+  $('reset').addEventListener('click', () => { if (busy || !puzzle) return; trail = [0]; hintCell = -1; showAnswer = false; $('toast').hidden = true; update(); });
+  $('answer').addEventListener('click', () => { if (busy || !puzzle) return; showAnswer = !showAnswer; update(); });
+  $('hint').addEventListener('click', () => {
+    if (busy || !puzzle || trail.at(-1) === COUNT - 1) return;
+    const wrongIndex = trail.findIndex((cell,i) => cell !== puzzle.path[i]);
+    if (wrongIndex >= 0) {
+      hintCell = trail[wrongIndex - 1];
+      notify(`正解の道から外れています。${trail.length - wrongIndex}マス戻って、丸印のマスから考え直そう。`);
+    } else { hintCell = puzzle.path[trail.length]; notify('丸印のマスが、次の一歩です。'); }
+    update();
+  });
+  $('save-image').addEventListener('click',saveImage);
+  window.addEventListener('beforeprint',preparePrint);
+  const rawSeed = new URLSearchParams(location.search).get('seed');
+  const seed = rawSeed !== null && /^\d{1,10}$/.test(rawSeed) && Number(rawSeed) <= 0xffffffff ? Number(rawSeed) : newSeed();
+  newPuzzle(seed);
+})();
+</script>
+</body>
+</html>
