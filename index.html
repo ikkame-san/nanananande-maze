@@ -59,10 +59,6 @@
     .sequence { display:flex; gap:5px; margin-top:18px; }
     .chip { flex:1; height:31px; display:grid; place-items:center; border:1px solid #466354; border-radius:6px; font-size:12px; color:#d3ddcf; }
     .chip.active { background:#f4f3df; color:var(--ink); border-color:#f4f3df; }
-    .sequence-note { font-size:10px; color:#a7c0ae; margin:9px 0 20px; text-align:right; }
-    .progress { display:flex; justify-content:space-between; border-top:1px solid #466354; padding-top:17px; font-size:11px; color:#bdd0c1; }
-    .progress strong { font-size:17px; color:#f7f5ed; margin-right:4px; }
-    .status { margin:14px 0 0; font-size:11px; line-height:1.8; min-height:40px; color:#d3ddcf; }
     .new-button { width:100%; border:0; border-radius:11px; padding:16px 10px; background:var(--orange); color:white; font-weight:800; font-size:18px; box-shadow:0 4px 0 #cc6438; transition:transform .15s; }
     .new-button:hover { transform:translateY(-1px); }
     .controls { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:12px; }
@@ -90,8 +86,7 @@
       .play-card .section-label { grid-column:1/-1; margin-bottom:12px; }
       .next-label { margin:0; grid-column:1; } .next-row { grid-column:1; } .next-char { font-size:40px; }
       .sequence { grid-column:2; grid-row:1 / 3; align-items:center; margin:0; gap:4px; }
-      .chip { height:28px; font-size:11px; } .sequence-note { display:none; }
-      .progress { grid-column:1; border:0; padding-top:9px; } .status { grid-column:2; margin:6px 0 0; min-height:0; font-size:10px; }
+      .chip { height:28px; font-size:11px; }
     }
     @media(prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none!important; transition:none!important; } }
     @media print {
@@ -129,9 +124,6 @@
         <p class="next-label" id="next-label">次にすすむ文字</p>
         <div class="next-row"><span id="next-char" class="next-char">な</span></div>
         <div id="sequence" class="sequence" aria-label="な、な、な、な、ん、で、の順で繰り返します"></div>
-        <p class="sequence-note">この6文字を、くり返し。</p>
-        <div class="progress"><span><strong id="steps">1</strong>マス進んだ</span><span id="lap">1 周目</span></div>
-        <p id="status" class="status" role="status" aria-live="polite">スタートから、隣の「な」へ。</p>
       </section>
       <div>
         <button id="new" class="new-button" type="button">あたらしい迷路</button>
@@ -464,16 +456,12 @@ if (typeof document !== 'undefined') (() => {
     $('trail-route').setAttribute('points', routePoints(trail));
     $('next-label').textContent = won ? 'ゴールに到着！' : '次にすすむ文字';
     $('next-char').textContent = won ? '✓' : needed;
-    $('steps').textContent = trail.length;
-    $('lap').textContent = won ? 'CLEAR!' : `${Math.floor(trail.length / WORD.length) + 1} 周目`;
     $('sequence').replaceChildren(...WORD.map((char,i) => {
       const chip = document.createElement('span'); chip.className = `chip${!won && i === trail.length % WORD.length ? ' active' : ''}`; chip.textContent = char;
       if (!won && i === trail.length % WORD.length) chip.setAttribute('aria-current','step');
       return chip;
     }));
     $('undo').disabled = trail.length <= 1 || busy;
-    const canMove = neighbors[current].some(n => !trail.includes(n) && puzzle.labels[n] === needed);
-    $('status').textContent = won ? 'おめでとう！ことばの道がつながりました。' : !canMove ? '行き止まりです。「ひとつ戻る」で別の道を探そう。' : trail.length === 1 ? 'スタートから、隣の「な」へ。' : `隣り合う「${needed}」へ進もう。`;
   }
   function move(cell) {
     if (busy || !puzzle) return;
