@@ -572,8 +572,7 @@ if (typeof document !== 'undefined') (() => {
       const puzzleUrl = new URL('https://ikkame-san.github.io/nanananande-maze/');
       puzzleUrl.searchParams.set('date',selectedDate);
       const intent = new URL('https://x.com/intent/tweet');
-      intent.searchParams.set('text',`ななななんで迷路 ${selectedDate.replaceAll('-','/')} をクリア！\nクリア時間 ${formatTime(clearTime,true)}\n#ななななんで迷路`);
-      intent.searchParams.set('url',puzzleUrl.href);
+      intent.searchParams.set('text',`ななななんで迷路 ${selectedDate.replaceAll('-','/')} をクリア！\nクリア時間 ${formatTime(clearTime,true)}\n#ななななんで迷路\n${puzzleUrl.href}`);
       share.href = intent.href;
     }
     updateTimer();
