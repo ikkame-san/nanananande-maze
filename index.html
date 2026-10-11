@@ -12,7 +12,7 @@
     button { font:inherit; cursor:pointer; }
     button:focus-visible, a:focus-visible, summary:focus-visible { outline:3px solid var(--orange); outline-offset:4px; }
     button:disabled { opacity:.4; cursor:default; }
-    .wrap { max-width:1200px; padding:0 38px; margin:0 auto; }
+    .wrap { max-width:1200px; padding:0 38px 24px; margin:0 auto; }
     .page-header { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,46%); gap:28px; align-items:start; padding:28px 0 20px; }
     h1 { font-size:clamp(26px,3.4vw,40px); line-height:1.4; letter-spacing:-.05em; margin:14px 0 0; font-weight:800; }
     .instructions { width:100%; justify-self:end; margin:0; padding:0; border:1px solid #bac8bb; border-radius:15px; }
@@ -25,14 +25,10 @@
     .instructions p { font-size:14px; font-weight:700; line-height:1.8; margin:0; }
     .rule-diagram { display:block; width:100%; height:auto; max-height:none; margin:6px auto 2px; }
     .rule-list { margin:6px 0 0; padding-left:1.2em; color:#52665c; font-size:14px; font-weight:700; line-height:1.8; }
-    .verified { display:flex; gap:7px; align-items:center; font-size:10px; color:var(--muted); }
-    .verified i { width:7px; height:7px; background:#609878; border-radius:50%; }
     .layout { display:grid; grid-template-columns:minmax(0,1fr) 286px; gap:22px; align-items:start; }
     .board-card { background:#fffef8; border:1px solid var(--line); border-radius:18px; overflow:hidden; }
-    .board-top { padding:19px 23px 0; display:flex; justify-content:space-between; align-items:center; }
     .section-label { font-size:10px; letter-spacing:.17em; font-weight:700; }
     .section-label span { color:#97a39a; margin-right:9px; }
-    .count-label { font-size:11px; color:var(--muted); }
     .board { position:relative; padding:0 10px; }
     svg { display:block; width:100%; max-height:585px; margin:0 auto; touch-action:manipulation; }
     .hex { cursor:pointer; outline:none; }
@@ -52,22 +48,14 @@
     .hex.goal .endpoint { fill:#ad572f; }
     .hex.current .endpoint { fill:#b9d1bf; }
     .route { fill:none; stroke:#81a98c; stroke-width:7; stroke-linecap:round; stroke-linejoin:round; opacity:.45; pointer-events:none; }
-    .answer-route { fill:none; stroke:var(--orange); stroke-width:4; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:3 7; opacity:.9; pointer-events:none; }
-    .hint-ring { fill:none; stroke:var(--orange); stroke-width:3; stroke-dasharray:3 3; pointer-events:none; }
     .hex.wrong .tile { animation:wrong .45s; }
     @keyframes wrong { 25%,75% { fill:#f6c1ad; stroke:#cf6c47; } }
-    .board-bottom { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:15px 23px; border-top:1px solid var(--line); background:#fafaf3; font-size:11px; }
-    .legend { display:flex; align-items:center; gap:7px; color:var(--muted); }
-    .legend-dot { width:8px; height:8px; border-radius:50%; background:var(--ink); }
-    .legend-dot.goal-dot { background:var(--orange); margin-left:11px; }
-    .text-button { border:0; padding:3px 0; background:transparent; color:var(--muted); font-size:11px; text-decoration:underline; text-underline-offset:4px; }
     .sidebar { display:flex; flex-direction:column; gap:16px; }
     .play-card { padding:24px; background:var(--ink); color:var(--paper); border-radius:18px; }
     .play-card .section-label { color:#c1d5c5; }
     .next-label { font-size:12px; color:#bdd0c1; margin:0 0 2px; }
     .next-row { display:flex; align-items:center; justify-content:space-between; }
     .next-char { font-size:59px; font-weight:700; line-height:1.25; }
-    .arrow { font-size:30px; color:#86a18e; }
     .sequence { display:flex; gap:5px; margin-top:18px; }
     .chip { flex:1; height:31px; display:grid; place-items:center; border:1px solid #466354; border-radius:6px; font-size:12px; color:#d3ddcf; }
     .chip.active { background:#f4f3df; color:var(--ink); border-color:#f4f3df; }
@@ -75,24 +63,23 @@
     .progress { display:flex; justify-content:space-between; border-top:1px solid #466354; padding-top:17px; font-size:11px; color:#bdd0c1; }
     .progress strong { font-size:17px; color:#f7f5ed; margin-right:4px; }
     .status { margin:14px 0 0; font-size:11px; line-height:1.8; min-height:40px; color:#d3ddcf; }
-    .new-button { width:100%; border:0; border-radius:11px; padding:15px 10px; background:var(--orange); color:white; font-weight:700; font-size:13px; box-shadow:0 4px 0 #cc6438; transition:transform .15s; }
+    .new-button { width:100%; border:0; border-radius:11px; padding:16px 10px; background:var(--orange); color:white; font-weight:800; font-size:18px; box-shadow:0 4px 0 #cc6438; transition:transform .15s; }
     .new-button:hover { transform:translateY(-1px); }
     .controls { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:12px; }
-    .secondary { border:1px solid #cdd6c8; background:transparent; border-radius:9px; padding:11px 5px; font-size:12px; color:var(--ink); }
+    .secondary { border:1px solid #cdd6c8; background:transparent; border-radius:9px; padding:14px 8px; font-size:17px; font-weight:700; color:var(--ink); }
+    #save-image { grid-column:1/-1; }
     .secondary:hover:not(:disabled) { background:#e9eddf; }
-    footer { display:flex; justify-content:space-between; gap:15px; padding:24px 0; font-size:10px; color:var(--muted); letter-spacing:.02em; }
-    .seed { font-variant-numeric:tabular-nums; }
     .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); padding:12px 21px; border-radius:10px; color:#fff; background:var(--ink); font-size:12px; box-shadow:0 8px 25px #193f3622; max-width:90vw; text-align:center; z-index:5; }
     [hidden] { display:none!important; }
     .print-output { display:none; }
     .problem-sheet { display:block; width:100%; height:auto; max-height:none; margin:0; }
     @media(max-width:800px) {
-      .wrap { padding:0 20px; }
+      .wrap { padding:0 20px 24px; }
       .layout { grid-template-columns:minmax(0,1fr) 240px; gap:15px; } .play-card { padding:20px; }
-      .board-top { padding:18px 17px 8px; } .board-bottom { padding:14px 17px; } .board { padding:0; }
+      .board { padding:0; }
     }
     @media(max-width:620px) {
-      .wrap { padding:0 16px; } .page-header { grid-template-columns:minmax(0,1fr) auto; gap:14px 10px; align-items:center; padding:22px 0 18px; }
+      .wrap { padding:0 16px 24px; } .page-header { grid-template-columns:minmax(0,1fr) auto; gap:14px 10px; align-items:center; padding:22px 0 18px; }
       h1 { margin:0; font-size:clamp(20px,5.3vw,26px); white-space:nowrap; }
       .instructions { max-width:460px; } .instructions[open] { grid-column:1/-1; }
       .instructions summary { font-size:16px; gap:12px; padding:11px 13px; } .instructions[open] summary { justify-content:flex-end; }
@@ -105,7 +92,6 @@
       .sequence { grid-column:2; grid-row:1 / 3; align-items:center; margin:0; gap:4px; }
       .chip { height:28px; font-size:11px; } .sequence-note { display:none; }
       .progress { grid-column:1; border:0; padding-top:9px; } .status { grid-column:2; margin:6px 0 0; min-height:0; font-size:10px; }
-      footer { font-size:9px; line-height:1.7; } .board-bottom { padding:13px 16px; }
     }
     @media(prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none!important; transition:none!important; } }
     @media print {
@@ -136,26 +122,23 @@
   </header>
   <main class="layout">
     <section class="board-card" aria-label="六角形の迷路">
-      <div class="board-top"><span class="count-label" id="cell-count">53 マス</span><div class="verified"><i aria-hidden="true"></i><span id="verified">盤面を準備中</span></div></div>
       <div class="board"><svg id="maze" viewBox="0 0 446.12 369" role="group" aria-label="迷路。スタートの「な」から隣のマスを選んでください。"></svg></div>
-      <div class="board-bottom"><div class="legend"><span class="legend-dot"></span>スタート<span class="legend-dot goal-dot"></span>ゴール</div><button id="answer" class="text-button" type="button" aria-pressed="false">答えを見る</button></div>
     </section>
     <aside class="sidebar" aria-label="遊び方と操作">
       <section class="play-card" aria-label="現在の状態">
         <p class="next-label" id="next-label">次にすすむ文字</p>
-        <div class="next-row"><span id="next-char" class="next-char">な</span><span class="arrow" aria-hidden="true">↗</span></div>
+        <div class="next-row"><span id="next-char" class="next-char">な</span></div>
         <div id="sequence" class="sequence" aria-label="な、な、な、な、ん、で、の順で繰り返します"></div>
         <p class="sequence-note">この6文字を、くり返し。</p>
         <div class="progress"><span><strong id="steps">1</strong>マス進んだ</span><span id="lap">1 周目</span></div>
         <p id="status" class="status" role="status" aria-live="polite">スタートから、隣の「な」へ。</p>
       </section>
       <div>
-        <button id="new" class="new-button" type="button">あたらしい迷路 <span aria-hidden="true">↗</span></button>
-        <div class="controls"><button id="undo" class="secondary" type="button" disabled>← ひとつ戻る</button><button id="reset" class="secondary" type="button">はじめから</button><button id="hint" class="secondary" type="button">ヒント</button><button id="save-image" class="secondary" type="button">画像として保存</button></div>
+        <button id="new" class="new-button" type="button">あたらしい迷路</button>
+        <div class="controls"><button id="undo" class="secondary" type="button" disabled>ひとつ戻る</button><button id="reset" class="secondary" type="button">はじめから</button><button id="save-image" class="secondary" type="button">画像として保存</button></div>
       </div>
     </aside>
   </main>
-  <footer><span class="seed" id="seed">問題番号 —</span></footer>
 </div>
 <div id="print-output" class="print-output" aria-hidden="true"></div>
 <div class="toast" id="toast" role="status" hidden></div>
@@ -339,13 +322,12 @@ if (typeof module !== 'undefined') module.exports = MazeEngine;
 if (typeof document !== 'undefined') (() => {
   const $ = id => document.getElementById(id);
   const {WORD, COUNT, ROWS, ROW_LENGTHS, cells, neighbors} = MazeEngine;
-  let puzzle, trail = [], showAnswer = false, hintCell = -1, busy = false, toastTimer;
+  let puzzle, trail = [], busy = false, toastTimer;
   const radius = 27, width = Math.sqrt(3) * radius, padding = 36;
   const letterColors = {'な':'#193f36', 'ん':'#ce5824', 'で':'#128574'};
   const sheetSize = 1200;
   const boardWidth = width * Math.max(...ROW_LENGTHS.map((length,row) => length + .5 * (row % 2))) + padding * 2;
   $('maze').setAttribute('viewBox', `0 0 ${boardWidth} ${(2 + 1.5 * (ROWS - 1)) * radius + padding * 2}`);
-  $('cell-count').textContent = `${COUNT} マス`;
   const centers = cells.map(({row,col}) => {
     return {x:padding + width / 2 + width * (col + .5 * (row % 2)), y:padding + radius + row * 1.5 * radius};
   });
@@ -467,8 +449,6 @@ if (typeof document !== 'undefined') (() => {
       svg.append(g);
     });
     svg.append(svgNode('polyline', {id:'trail-route', 'class':'route'}));
-    svg.append(svgNode('polyline', {id:'answer-route', 'class':'answer-route', visibility:'hidden'}));
-    svg.append(svgNode('circle', {id:'hint-ring', r:19, 'class':'hint-ring', visibility:'hidden'}));
     update();
   }
   function update() {
@@ -482,10 +462,6 @@ if (typeof document !== 'undefined') (() => {
     });
     const routePoints = route => route.map(i => `${centers[i].x},${centers[i].y}`).join(' ');
     $('trail-route').setAttribute('points', routePoints(trail));
-    $('answer-route').setAttribute('points', routePoints(puzzle.path));
-    $('answer-route').setAttribute('visibility', showAnswer ? 'visible' : 'hidden');
-    $('hint-ring').setAttribute('visibility', hintCell >= 0 ? 'visible' : 'hidden');
-    if (hintCell >= 0) { $('hint-ring').setAttribute('cx',centers[hintCell].x); $('hint-ring').setAttribute('cy',centers[hintCell].y); }
     $('next-label').textContent = won ? 'ゴールに到着！' : '次にすすむ文字';
     $('next-char').textContent = won ? '✓' : needed;
     $('steps').textContent = trail.length;
@@ -496,9 +472,6 @@ if (typeof document !== 'undefined') (() => {
       return chip;
     }));
     $('undo').disabled = trail.length <= 1 || busy;
-    $('hint').disabled = won || busy;
-    $('answer').textContent = showAnswer ? '答えを隠す' : '答えを見る';
-    $('answer').setAttribute('aria-pressed', String(showAnswer));
     const canMove = neighbors[current].some(n => !trail.includes(n) && puzzle.labels[n] === needed);
     $('status').textContent = won ? 'おめでとう！ことばの道がつながりました。' : !canMove ? '行き止まりです。「ひとつ戻る」で別の道を探そう。' : trail.length === 1 ? 'スタートから、隣の「な」へ。' : `隣り合う「${needed}」へ進もう。`;
   }
@@ -518,50 +491,36 @@ if (typeof document !== 'undefined') (() => {
       return;
     }
     $('toast').hidden = true; clearTimeout(toastTimer);
-    trail.push(cell); hintCell = -1; update();
+    trail.push(cell); update();
     if (cell === COUNT - 1) notify('クリア！「ななななんで」の道、完成です。');
   }
-  function undo() { if (busy || trail.length <= 1) return; trail.pop(); hintCell = -1; update(); }
+  function undo() { if (busy || trail.length <= 1) return; trail.pop(); update(); }
   function newSeed() { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0]; }
   async function newPuzzle(seed) {
     if (busy) return;
     busy = true; $('new').disabled = true; $('new').textContent = '迷路をつくっています…';
-    ['undo','reset','hint','answer','save-image'].forEach(id => $(id).disabled = true);
-    $('verified').textContent = '正解の道を検査中';
+    ['undo','reset','save-image'].forEach(id => $(id).disabled = true);
     $('maze').setAttribute('aria-busy','true');
     await new Promise(resolve => setTimeout(resolve,30));
     try {
-      puzzle = MazeEngine.generate(seed); trail = [0]; showAnswer = false; hintCell = -1;
+      puzzle = MazeEngine.generate(seed); trail = [0];
       $('toast').hidden = true; clearTimeout(toastTimer);
-      $('seed').textContent = `問題番号 ${puzzle.seed.toString(16).toUpperCase().padStart(8,'0')}`;
-      $('verified').textContent = '正解は、1通り。';
       // Store only the seed in the URL, so reloading or sharing reproduces this board.
       try { const url = new URL(location.href); url.searchParams.set('seed',String(puzzle.seed)); history.replaceState(null,'',url); } catch (_) { /* file previews may restrict history */ }
       draw();
     } catch (error) {
-      $('verified').textContent = puzzle ? '前の迷路を表示中' : '生成できませんでした';
       notify('迷路の生成に失敗しました。あたらしい迷路を押してください。');
       console.error(error);
     } finally {
-      busy = false; $('new').disabled = false; $('new').innerHTML = 'あたらしい迷路 <span aria-hidden="true">↗</span>';
-      ['reset','answer','save-image'].forEach(id => $(id).disabled = !puzzle);
+      busy = false; $('new').disabled = false; $('new').textContent = 'あたらしい迷路';
+      ['reset','save-image'].forEach(id => $(id).disabled = !puzzle);
       $('maze').setAttribute('aria-busy','false');
       if (puzzle) update();
     }
   }
   $('new').addEventListener('click', () => newPuzzle(newSeed()));
   $('undo').addEventListener('click',undo);
-  $('reset').addEventListener('click', () => { if (busy || !puzzle) return; trail = [0]; hintCell = -1; showAnswer = false; $('toast').hidden = true; update(); });
-  $('answer').addEventListener('click', () => { if (busy || !puzzle) return; showAnswer = !showAnswer; update(); });
-  $('hint').addEventListener('click', () => {
-    if (busy || !puzzle || trail.at(-1) === COUNT - 1) return;
-    const wrongIndex = trail.findIndex((cell,i) => cell !== puzzle.path[i]);
-    if (wrongIndex >= 0) {
-      hintCell = trail[wrongIndex - 1];
-      notify(`正解の道から外れています。${trail.length - wrongIndex}マス戻って、丸印のマスから考え直そう。`);
-    } else { hintCell = puzzle.path[trail.length]; notify('丸印のマスが、次の一歩です。'); }
-    update();
-  });
+  $('reset').addEventListener('click', () => { if (busy || !puzzle) return; trail = [0]; $('toast').hidden = true; update(); });
   $('save-image').addEventListener('click',saveImage);
   window.addEventListener('beforeprint',preparePrint);
   const rawSeed = new URLSearchParams(location.search).get('seed');
