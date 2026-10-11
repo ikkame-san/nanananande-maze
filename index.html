@@ -15,6 +15,10 @@
     .wrap { max-width:1200px; padding:0 38px 24px; margin:0 auto; }
     .page-header { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,46%); gap:28px; align-items:start; padding:28px 0 20px; }
     h1 { font-size:clamp(26px,3.4vw,40px); line-height:1.4; letter-spacing:-.05em; margin:14px 0 0; font-weight:800; }
+    .title-row { display:flex; align-items:baseline; flex-wrap:wrap; gap:10px 14px; margin-top:14px; }
+    .title-row h1 { margin:0; }
+    .puzzle-day { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:700; color:#52665c; white-space:nowrap; }
+    .today-badge { padding:3px 8px; border-radius:6px; background:#fae4d5; color:#aa4d25; font-size:12px; font-weight:800; }
     .instructions { width:100%; justify-self:end; margin:0; padding:0; border:1px solid #bac8bb; border-radius:15px; }
     .instructions:not([open]) { width:max-content; }
     .instructions summary { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:13px 17px; cursor:pointer; list-style:none; font-size:18px; font-weight:800; }
@@ -100,6 +104,10 @@
     @media(max-width:620px) {
       .wrap { padding:0 16px 24px; } .page-header { grid-template-columns:minmax(0,1fr) auto; gap:14px 10px; align-items:center; padding:22px 0 18px; }
       h1 { margin:0; font-size:clamp(20px,5.3vw,26px); white-space:nowrap; }
+      .title-row { align-items:center; gap:8px; margin-top:0; }
+      .title-row h1 { font-size:clamp(18px,4.6vw,26px); }
+      .puzzle-day { flex-direction:column; align-items:flex-start; gap:3px; font-size:12px; }
+      .today-badge { padding:2px 6px; font-size:10px; }
       .instructions { max-width:460px; } .instructions[open] { grid-column:1/-1; }
       .instructions summary { font-size:16px; gap:12px; padding:11px 13px; } .instructions[open] summary { justify-content:flex-end; }
       .instructions p { font-size:13px; } .rule-list { font-size:13px; }
@@ -123,7 +131,10 @@
 <body>
 <div class="wrap">
   <header class="page-header">
-    <h1>ななななんで迷路</h1>
+    <div class="title-row">
+      <h1>ななななんで迷路</h1>
+      <span class="puzzle-day" id="puzzle-day" hidden><time id="puzzle-day-date"></time><span class="today-badge" id="today-badge">今日</span></span>
+    </div>
     <details class="instructions">
     <summary>ルール</summary>
     <div class="rule-content">
@@ -389,6 +400,12 @@ if (typeof document !== 'undefined') (() => {
     $('puzzle-date').disabled = busy || !puzzle;
     $('new').disabled = busy || selectedDate === range.today;
     $('new').hidden = !selectedDate || selectedDate === range.today;
+    $('puzzle-day').hidden = !selectedDate;
+    if (selectedDate) {
+      $('puzzle-day-date').dateTime = selectedDate;
+      $('puzzle-day-date').textContent = selectedDate.replaceAll('-','/');
+      $('today-badge').hidden = selectedDate !== range.today;
+    }
     return range;
   }
   function formatTime(milliseconds, precise = false) {
@@ -651,59 +668,7 @@ if (typeof document !== 'undefined') (() => {
   $('save-image').addEventListener('click',saveImage);
   window.addEventListener('beforeprint',preparePrint);
   setInterval(updateTimer,100);
-  refreshDates();
-  const date = DailyPuzzle.resolve(new URLSearchParams(location.search).get('date'));
-  newPuzzle(date);
-})();
-</script>
-</body>
-</html>
-        const url = new URL(location.href); url.search = '';
-        if (date !== DailyPuzzle.today()) url.searchParams.set('date',date);
-        history.replaceState(null,'',url);
-      } catch (_) { /* file previews may restrict history */ }
-      draw();
-    } catch (error) {
-      notify('迷路の生成に失敗しました。ページを再読み込みしてください。');
-      console.error(error);
-    } finally {
-      busy = false; $('new').textContent = '今日の迷路'; refreshDates();
-      ['reset','save-image'].forEach(id => $(id).disabled = !puzzle);
-      $('maze').setAttribute('aria-busy','false');
-      if (puzzle) update();
-    }
-  }
-  function confirmRestart(action,date = null) {
-    if (busy || $('confirm-dialog').open) return;
-    if (!puzzle) { if (action === 'date') newPuzzle(date); return; }
-    pendingRestart = {action,date};
-    $('confirm-title').textContent = action === 'date' ? `${date.replaceAll('-','/')} の迷路に変えますか？` : 'はじめからやり直しますか？';
-    $('confirm-accept').textContent = action === 'date' ? '変更する' : 'やり直す';
-    $('confirm-dialog').returnValue = '';
-    $('confirm-dialog').showModal();
-  }
-  $('confirm-dialog').addEventListener('close', () => {
-    const pending = pendingRestart; pendingRestart = null;
-    if ($('confirm-dialog').returnValue !== 'confirm' || !pending || busy || !puzzle) return;
-    if (pending.action === 'date') { newPuzzle(pending.date); return; }
-    trail = [0]; startTimer(); $('toast').hidden = true; clearTimeout(toastTimer); update();
-  });
-  function requestDate(date) {
-    refreshDates();
-    $('puzzle-date').value = selectedDate || DailyPuzzle.today();
-    if (!DailyPuzzle.isAllowed(date)) { notify('今日以前の正しい日付を選んでください。'); return; }
-    if (date === selectedDate) return;
-    confirmRestart('date',date);
-  }
-  $('puzzle-date').addEventListener('change', event => requestDate(event.target.value));
-  $('puzzle-date').addEventListener('focus',refreshDates);
-  window.addEventListener('focus',refreshDates);
-  $('new').addEventListener('click', () => requestDate(DailyPuzzle.today()));
-  $('undo').addEventListener('click',undo);
-  $('reset').addEventListener('click', () => confirmRestart('reset'));
-  $('save-image').addEventListener('click',saveImage);
-  window.addEventListener('beforeprint',preparePrint);
-  setInterval(updateTimer,100);
+  setInterval(refreshDates,60000);
   refreshDates();
   const date = DailyPuzzle.resolve(new URLSearchParams(location.search).get('date'));
   newPuzzle(date);
