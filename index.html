@@ -10,13 +10,18 @@
     * { box-sizing:border-box; }
     body { margin:0; background:var(--paper); color:var(--ink); font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif; }
     button { font:inherit; cursor:pointer; }
-    button:focus-visible, a:focus-visible { outline:3px solid var(--orange); outline-offset:4px; }
+    button:focus-visible, a:focus-visible, summary:focus-visible { outline:3px solid var(--orange); outline-offset:4px; }
     button:disabled { opacity:.4; cursor:default; }
     .wrap { max-width:1200px; padding:0 38px; margin:0 auto; }
     .page-header { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,46%); gap:28px; align-items:start; padding:28px 0 20px; }
     h1 { font-size:clamp(26px,3.4vw,40px); line-height:1.4; letter-spacing:-.05em; margin:14px 0 0; font-weight:800; }
-    .instructions { margin:0; padding:13px 17px; border:1px solid #bac8bb; border-radius:15px; }
-    .instructions h2 { font-size:18px; font-weight:800; margin:0 0 7px; }
+    .instructions { width:100%; justify-self:end; margin:0; padding:0; border:1px solid #bac8bb; border-radius:15px; }
+    .instructions:not([open]) { width:max-content; }
+    .instructions summary { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:13px 17px; cursor:pointer; list-style:none; font-size:18px; font-weight:800; }
+    .instructions summary::-webkit-details-marker { display:none; }
+    .instructions summary::after { content:""; width:8px; height:8px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:translateY(-2px) rotate(45deg); }
+    .instructions[open] summary::after { transform:translateY(2px) rotate(225deg); }
+    .rule-content { padding:0 17px 13px; }
     .instructions p { font-size:14px; font-weight:700; line-height:1.8; margin:0; }
     .rule-diagram { display:block; width:100%; height:auto; max-height:none; margin:6px auto 2px; }
     .rule-list { margin:6px 0 0; padding-left:1.2em; color:#52665c; font-size:14px; font-weight:700; line-height:1.8; }
@@ -87,8 +92,10 @@
       .board-top { padding:18px 17px 8px; } .board-bottom { padding:14px 17px; } .board { padding:0; }
     }
     @media(max-width:620px) {
-      .wrap { padding:0 16px; } .page-header { grid-template-columns:1fr; gap:14px; padding:22px 0 18px; }
-      h1 { margin:0; } .instructions { width:100%; max-width:460px; justify-self:end; }
+      .wrap { padding:0 16px; } .page-header { grid-template-columns:minmax(0,1fr) auto; gap:14px 10px; align-items:center; padding:22px 0 18px; }
+      h1 { margin:0; font-size:clamp(20px,5.3vw,26px); white-space:nowrap; }
+      .instructions { max-width:460px; } .instructions[open] { grid-column:1/-1; }
+      .instructions summary { font-size:16px; gap:12px; padding:11px 13px; } .instructions[open] summary { justify-content:flex-end; }
       .instructions p { font-size:13px; } .rule-list { font-size:13px; }
       .layout { display:flex; flex-direction:column; gap:15px; } .board-card, .sidebar { width:100%; }
       .sidebar { display:grid; grid-template-columns:1fr; gap:14px; }
@@ -114,8 +121,9 @@
 <div class="wrap">
   <header class="page-header">
     <h1>ななななんで迷路</h1>
-    <section class="instructions" aria-label="あそびかた">
-    <h2>ルール</h2>
+    <details class="instructions">
+    <summary>ルール</summary>
+    <div class="rule-content">
     <p>スタートの「な」を1文字目に、この順番でゴールへ。</p>
     <div id="rule-diagram"></div>
     <ul class="rule-list">
@@ -123,7 +131,8 @@
       <li>同じマスは2度通らない</li>
       <li>すべてのマスを通る必要はない</li>
     </ul>
-    </section>
+    </div>
+    </details>
   </header>
   <main class="layout">
     <section class="board-card" aria-label="六角形の迷路">
