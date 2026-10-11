@@ -359,8 +359,7 @@ const DailyPuzzle = (() => {
     return `${parts.year}-${parts.month}-${parts.day}`;
   }
   function bounds(now = new Date()) {
-    const current = today(now), [year,month] = current.split('-').map(Number);
-    return {today:current,min:new Date(Date.UTC(year,month-2,1)).toISOString().slice(0,10)};
+    return {today:today(now)};
   }
   function isDate(value) {
     if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -369,7 +368,7 @@ const DailyPuzzle = (() => {
   }
   function isAllowed(value, now = new Date()) {
     const range = bounds(now);
-    return isDate(value) && value >= range.min && value <= range.today;
+    return isDate(value) && value <= range.today;
   }
   function resolve(value, now = new Date()) { return isAllowed(value,now) ? value : today(now); }
   function seed(value) {
@@ -385,7 +384,7 @@ if (typeof document !== 'undefined') (() => {
   let puzzle, selectedDate = null, trail = [], busy = false, toastTimer, timerStartedAt = 0, clearTime = null, pendingRestart = null;
   function refreshDates() {
     const range = DailyPuzzle.bounds();
-    $('puzzle-date').min = range.min;
+    $('puzzle-date').removeAttribute('min');
     $('puzzle-date').max = range.today;
     $('puzzle-date').disabled = busy || !puzzle;
     $('new').disabled = busy || selectedDate === range.today;
@@ -591,7 +590,7 @@ if (typeof document !== 'undefined') (() => {
   function undo() { if (busy || trail.length <= 1) return; trail.pop(); clearTime = null; update(); }
   async function newPuzzle(date) {
     if (busy) return;
-    if (!DailyPuzzle.isAllowed(date)) { refreshDates(); notify('先月1日から今日までの日付を選んでください。'); return; }
+    if (!DailyPuzzle.isAllowed(date)) { refreshDates(); notify('今日以前の正しい日付を選んでください。'); return; }
     busy = true; $('new').disabled = true; $('new').textContent = '迷路をつくっています…';
     $('puzzle-date').disabled = true;
     $('share-x').hidden = true; $('share-x').removeAttribute('href');
@@ -639,7 +638,60 @@ if (typeof document !== 'undefined') (() => {
   function requestDate(date) {
     refreshDates();
     $('puzzle-date').value = selectedDate || DailyPuzzle.today();
-    if (!DailyPuzzle.isAllowed(date)) { notify('先月1日から今日までの日付を選んでください。'); return; }
+    if (!DailyPuzzle.isAllowed(date)) { notify('今日以前の正しい日付を選んでください。'); return; }
+    if (date === selectedDate) return;
+    confirmRestart('date',date);
+  }
+  $('puzzle-date').addEventListener('change', event => requestDate(event.target.value));
+  $('puzzle-date').addEventListener('focus',refreshDates);
+  window.addEventListener('focus',refreshDates);
+  $('new').addEventListener('click', () => requestDate(DailyPuzzle.today()));
+  $('undo').addEventListener('click',undo);
+  $('reset').addEventListener('click', () => confirmRestart('reset'));
+  $('save-image').addEventListener('click',saveImage);
+  window.addEventListener('beforeprint',preparePrint);
+  setInterval(updateTimer,100);
+  refreshDates();
+  const date = DailyPuzzle.resolve(new URLSearchParams(location.search).get('date'));
+  newPuzzle(date);
+})();
+</script>
+</body>
+</html>
+        const url = new URL(location.href); url.search = '';
+        if (date !== DailyPuzzle.today()) url.searchParams.set('date',date);
+        history.replaceState(null,'',url);
+      } catch (_) { /* file previews may restrict history */ }
+      draw();
+    } catch (error) {
+      notify('迷路の生成に失敗しました。ページを再読み込みしてください。');
+      console.error(error);
+    } finally {
+      busy = false; $('new').textContent = '今日の迷路'; refreshDates();
+      ['reset','save-image'].forEach(id => $(id).disabled = !puzzle);
+      $('maze').setAttribute('aria-busy','false');
+      if (puzzle) update();
+    }
+  }
+  function confirmRestart(action,date = null) {
+    if (busy || $('confirm-dialog').open) return;
+    if (!puzzle) { if (action === 'date') newPuzzle(date); return; }
+    pendingRestart = {action,date};
+    $('confirm-title').textContent = action === 'date' ? `${date.replaceAll('-','/')} の迷路に変えますか？` : 'はじめからやり直しますか？';
+    $('confirm-accept').textContent = action === 'date' ? '変更する' : 'やり直す';
+    $('confirm-dialog').returnValue = '';
+    $('confirm-dialog').showModal();
+  }
+  $('confirm-dialog').addEventListener('close', () => {
+    const pending = pendingRestart; pendingRestart = null;
+    if ($('confirm-dialog').returnValue !== 'confirm' || !pending || busy || !puzzle) return;
+    if (pending.action === 'date') { newPuzzle(pending.date); return; }
+    trail = [0]; startTimer(); $('toast').hidden = true; clearTimeout(toastTimer); update();
+  });
+  function requestDate(date) {
+    refreshDates();
+    $('puzzle-date').value = selectedDate || DailyPuzzle.today();
+    if (!DailyPuzzle.isAllowed(date)) { notify('今日以前の正しい日付を選んでください。'); return; }
     if (date === selectedDate) return;
     confirmRestart('date',date);
   }
