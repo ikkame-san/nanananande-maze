@@ -604,8 +604,12 @@ if (typeof document !== 'undefined') (() => {
       $('archive').open = date !== DailyPuzzle.today();
       startTimer();
       $('toast').hidden = true; clearTimeout(toastTimer);
-      // Share the date; the same Japanese calendar day always uses the same seed.
-      try { const url = new URL(location.href); url.searchParams.delete('seed'); url.searchParams.set('date',date); history.replaceState(null,'',url); } catch (_) { /* file previews may restrict history */ }
+      // Today's puzzle uses the root URL; archive URLs keep their date.
+      try {
+        const url = new URL(location.href); url.search = '';
+        if (date !== DailyPuzzle.today()) url.searchParams.set('date',date);
+        history.replaceState(null,'',url);
+      } catch (_) { /* file previews may restrict history */ }
       draw();
     } catch (error) {
       notify('迷路の生成に失敗しました。ページを再読み込みしてください。');
