@@ -392,7 +392,7 @@ if (typeof module !== 'undefined') module.exports = {...MazeEngine,daily:DailyPu
 if (typeof document !== 'undefined') (() => {
   const $ = id => document.getElementById(id);
   const {WORD, COUNT, ROWS, ROW_LENGTHS, cells, neighbors} = MazeEngine;
-  let puzzle, selectedDate = null, trail = [], busy = false, toastTimer, timerStartedAt = 0, clearTime = null, pendingRestart = null;
+  let puzzle, selectedDate = null, trail = [], busy = false, toastTimer, timerStartedAt = 0, clearTime = null;
   function refreshDates() {
     const range = DailyPuzzle.bounds();
     $('puzzle-date').removeAttribute('min');
@@ -637,19 +637,13 @@ if (typeof document !== 'undefined') (() => {
       if (puzzle) update();
     }
   }
-  function confirmRestart(action,date = null) {
-    if (busy || $('confirm-dialog').open) return;
-    if (!puzzle) { if (action === 'date') newPuzzle(date); return; }
-    pendingRestart = {action,date};
-    $('confirm-title').textContent = action === 'date' ? `${date.replaceAll('-','/')} の迷路に変えますか？` : 'はじめからやり直しますか？';
-    $('confirm-accept').textContent = action === 'date' ? '変更する' : 'やり直す';
+  function confirmRestart() {
+    if (busy || !puzzle || $('confirm-dialog').open) return;
     $('confirm-dialog').returnValue = '';
     $('confirm-dialog').showModal();
   }
   $('confirm-dialog').addEventListener('close', () => {
-    const pending = pendingRestart; pendingRestart = null;
-    if ($('confirm-dialog').returnValue !== 'confirm' || !pending || busy || !puzzle) return;
-    if (pending.action === 'date') { newPuzzle(pending.date); return; }
+    if ($('confirm-dialog').returnValue !== 'confirm' || busy || !puzzle) return;
     trail = [0]; startTimer(); $('toast').hidden = true; clearTimeout(toastTimer); update();
   });
   function requestDate(date) {
@@ -657,14 +651,14 @@ if (typeof document !== 'undefined') (() => {
     $('puzzle-date').value = selectedDate || DailyPuzzle.today();
     if (!DailyPuzzle.isAllowed(date)) { notify('今日以前の正しい日付を選んでください。'); return; }
     if (date === selectedDate) return;
-    confirmRestart('date',date);
+    newPuzzle(date);
   }
   $('puzzle-date').addEventListener('change', event => requestDate(event.target.value));
   $('puzzle-date').addEventListener('focus',refreshDates);
   window.addEventListener('focus',refreshDates);
   $('new').addEventListener('click', () => requestDate(DailyPuzzle.today()));
   $('undo').addEventListener('click',undo);
-  $('reset').addEventListener('click', () => confirmRestart('reset'));
+  $('reset').addEventListener('click',confirmRestart);
   $('save-image').addEventListener('click',saveImage);
   window.addEventListener('beforeprint',preparePrint);
   setInterval(updateTimer,100);
