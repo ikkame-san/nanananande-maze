@@ -78,6 +78,7 @@
     .new-button { border:1px solid var(--orange); border-radius:9px; padding:14px 6px; background:var(--orange); color:white; font-weight:800; font-size:17px; transition:transform .15s; }
     .new-button:hover { transform:translateY(-1px); }
     .controls { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+    #save-image, #new { grid-column:1/-1; }
     .secondary { border:1px solid #cdd6c8; background:transparent; border-radius:9px; padding:14px 6px; font-size:17px; font-weight:700; color:var(--ink); }
     .secondary:hover:not(:disabled) { background:#e9eddf; }
     .confirm-dialog { width:calc(100% - 32px); max-width:400px; padding:24px; border:1px solid var(--line); border-radius:18px; background:#fffef8; color:var(--ink); box-shadow:0 18px 60px #193f3633; }
@@ -152,8 +153,8 @@
       <div class="controls">
         <button id="undo" class="secondary" type="button" disabled>ひとつ戻る</button>
         <button id="reset" class="secondary" type="button">はじめから</button>
-        <button id="new" class="new-button" type="button">今日の迷路</button>
-        <button id="save-image" class="secondary" type="button">画像として保存</button>
+        <button id="save-image" class="secondary" type="button">パズルを画像として保存</button>
+        <button id="new" class="new-button" type="button" hidden>今日の迷路</button>
       </div>
       <details class="date-picker" id="archive">
         <summary>過去の迷路</summary>
@@ -388,6 +389,7 @@ if (typeof document !== 'undefined') (() => {
     $('puzzle-date').max = range.today;
     $('puzzle-date').disabled = busy || !puzzle;
     $('new').disabled = busy || selectedDate === range.today;
+    $('new').hidden = !selectedDate || selectedDate === range.today;
     return range;
   }
   function formatTime(milliseconds, precise = false) {
@@ -493,7 +495,7 @@ if (typeof document !== 'undefined') (() => {
       notify('画像を保存できませんでした。もう一度お試しください。');
     } finally {
       if (sourceUrl) URL.revokeObjectURL(sourceUrl);
-      button.disabled = busy; button.textContent = '画像として保存';
+      button.disabled = busy; button.textContent = 'パズルを画像として保存';
     }
   }
   function notify(message) {
@@ -606,7 +608,7 @@ if (typeof document !== 'undefined') (() => {
       try { const url = new URL(location.href); url.searchParams.delete('seed'); url.searchParams.set('date',date); history.replaceState(null,'',url); } catch (_) { /* file previews may restrict history */ }
       draw();
     } catch (error) {
-      notify('迷路の生成に失敗しました。今日の迷路を押してください。');
+      notify('迷路の生成に失敗しました。ページを再読み込みしてください。');
       console.error(error);
     } finally {
       busy = false; $('new').textContent = '今日の迷路'; refreshDates();
