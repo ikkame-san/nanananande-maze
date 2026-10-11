@@ -10,7 +10,7 @@
     * { box-sizing:border-box; }
     body { margin:0; background:var(--paper); color:var(--ink); font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif; }
     button { font:inherit; cursor:pointer; }
-    button:focus-visible, a:focus-visible, summary:focus-visible { outline:3px solid var(--orange); outline-offset:4px; }
+    button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visible { outline:3px solid var(--orange); outline-offset:4px; }
     button:disabled { opacity:.4; cursor:default; }
     .wrap { max-width:1200px; padding:0 38px 24px; margin:0 auto; }
     .page-header { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,46%); gap:28px; align-items:start; padding:28px 0 20px; }
@@ -52,6 +52,9 @@
     .hex.wrong .tile { animation:wrong .45s; }
     @keyframes wrong { 25%,75% { fill:#f6c1ad; stroke:#cf6c47; } }
     .sidebar { display:flex; flex-direction:column; gap:16px; }
+    .date-picker { padding:16px; border:1px solid var(--line); border-radius:18px; background:#fffef8; }
+    .date-picker label { display:block; margin-bottom:9px; font-size:14px; font-weight:700; }
+    .date-picker input { display:block; width:100%; min-width:0; border:1px solid #cdd6c8; border-radius:9px; padding:11px 12px; background:#fff; color:var(--ink); font:700 18px "Yu Gothic",Meiryo,sans-serif; }
     .play-card { padding:24px; background:var(--ink); color:var(--paper); border-radius:18px; }
     .play-card .section-label { color:#c1d5c5; }
     .next-label { font-size:18px; font-weight:700; color:#bdd0c1; margin:0; }
@@ -134,13 +137,17 @@
       <div class="board"><svg id="maze" viewBox="28 28 390.12 313" role="group" aria-label="迷路。スタートの「な」から隣のマスを選んでください。"></svg></div>
     </section>
     <aside class="sidebar" aria-label="遊び方と操作">
+      <section class="date-picker" aria-label="日付のパズル">
+        <label for="puzzle-date">日付を選ぶ</label>
+        <input type="date" id="puzzle-date" required disabled>
+      </section>
       <section class="play-card" id="play-card" aria-label="現在の状態">
         <div class="next-row" role="status" aria-live="polite"><p class="next-label" id="next-label">次は</p><span id="next-char" class="next-char">な</span></div>
         <p class="elapsed" id="elapsed">経過時間<time id="elapsed-time">0:00</time></p>
         <div id="sequence" class="sequence" aria-label="な、な、な、な、ん、で、の順で繰り返します"></div>
       </section>
       <div>
-        <button id="new" class="new-button" type="button">あたらしい迷路</button>
+        <button id="new" class="new-button" type="button">今日の迷路</button>
         <div class="controls"><button id="undo" class="secondary" type="button" disabled>ひとつ戻る</button><button id="reset" class="secondary" type="button">はじめから</button><button id="save-image" class="secondary" type="button">画像として保存</button></div>
       </div>
     </aside>
@@ -332,11 +339,45 @@ const MazeEngine = (() => {
   }
   return {COLS, ROWS, ROW_LENGTHS, cells, COUNT, PATH_LENGTH, MAX_STRAIGHT_STEPS, MIN_TURNS, WORD, neighbors, solve, generate, fallback};
 })();
-if (typeof module !== 'undefined') module.exports = MazeEngine;
+const DailyPuzzle = (() => {
+  const formatter = new Intl.DateTimeFormat('en-US', {timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'});
+  function today(now = new Date()) {
+    const parts = Object.fromEntries(formatter.formatToParts(now).map(part => [part.type,part.value]));
+    return `${parts.year}-${parts.month}-${parts.day}`;
+  }
+  function bounds(now = new Date()) {
+    const current = today(now), [year,month] = current.split('-').map(Number);
+    return {today:current,min:new Date(Date.UTC(year,month-2,1)).toISOString().slice(0,10)};
+  }
+  function isDate(value) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0,10) === value;
+  }
+  function isAllowed(value, now = new Date()) {
+    const range = bounds(now);
+    return isDate(value) && value >= range.min && value <= range.today;
+  }
+  function resolve(value, now = new Date()) { return isAllowed(value,now) ? value : today(now); }
+  function seed(value) {
+    if (!isDate(value)) throw new RangeError('日付が正しくありません。');
+    return Number(value.replaceAll('-',''));
+  }
+  return {today,bounds,isDate,isAllowed,resolve,seed};
+})();
+if (typeof module !== 'undefined') module.exports = {...MazeEngine,daily:DailyPuzzle};
 if (typeof document !== 'undefined') (() => {
   const $ = id => document.getElementById(id);
   const {WORD, COUNT, ROWS, ROW_LENGTHS, cells, neighbors} = MazeEngine;
-  let puzzle, trail = [], busy = false, toastTimer, timerStartedAt = 0, clearTime = null, pendingRestart = null;
+  let puzzle, selectedDate = null, trail = [], busy = false, toastTimer, timerStartedAt = 0, clearTime = null, pendingRestart = null;
+  function refreshDates() {
+    const range = DailyPuzzle.bounds();
+    $('puzzle-date').min = range.min;
+    $('puzzle-date').max = range.today;
+    $('puzzle-date').disabled = busy || !puzzle;
+    $('new').disabled = busy || selectedDate === range.today;
+    return range;
+  }
   function formatTime(milliseconds, precise = false) {
     const tenths = Math.floor(Math.max(0,milliseconds) / 100);
     const minutes = Math.floor(tenths / 600), seconds = Math.floor(tenths / 10) % 60;
@@ -431,7 +472,7 @@ if (typeof document !== 'undefined') (() => {
       canvas.getContext('2d').drawImage(img,0,0,sheetSize,sheetSize);
       const blob = await new Promise((resolve,reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('画像を保存できませんでした')),'image/png'));
       const url = URL.createObjectURL(blob), link = document.createElement('a');
-      link.href = url; link.download = `ななななんで迷路-${puzzle.seed.toString(16).toUpperCase().padStart(8,'0')}.png`;
+      link.href = url; link.download = `ななななんで迷路-${selectedDate}.png`;
       document.body.append(link); link.click(); link.remove();
       setTimeout(() => URL.revokeObjectURL(url),30000);
       notify(`PNG画像を保存しました（${sheetSize} × ${sheetSize}）`);
@@ -505,7 +546,7 @@ if (typeof document !== 'undefined') (() => {
     if (busy || !puzzle) return;
     if (cell === trail.at(-1)) return;
     if (trail.length > 1 && cell === trail.at(-2)) { undo(); return; }
-    if (trail.at(-1) === COUNT - 1) { notify('クリアしました！あたらしい迷路にも挑戦しよう。'); return; }
+    if (trail.at(-1) === COUNT - 1) { notify('クリアしました！別の日付の迷路にも挑戦しよう。'); return; }
     let error = '';
     if (!neighbors[trail.at(-1)].includes(cell)) error = '辺で接しているマスに進もう。';
     else if (trail.includes(cell)) error = '一度通ったマスには戻れません。「ひとつ戻る」を使おう。';
@@ -522,54 +563,66 @@ if (typeof document !== 'undefined') (() => {
     update();
   }
   function undo() { if (busy || trail.length <= 1) return; trail.pop(); clearTime = null; update(); }
-  function newSeed() { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0]; }
-  async function newPuzzle(seed) {
+  async function newPuzzle(date) {
     if (busy) return;
+    if (!DailyPuzzle.isAllowed(date)) { refreshDates(); notify('先月1日から今日までの日付を選んでください。'); return; }
     busy = true; $('new').disabled = true; $('new').textContent = '迷路をつくっています…';
+    $('puzzle-date').disabled = true;
     ['undo','reset','save-image'].forEach(id => $(id).disabled = true);
     $('maze').setAttribute('aria-busy','true');
     await new Promise(resolve => setTimeout(resolve,30));
     try {
-      puzzle = MazeEngine.generate(seed); trail = [0];
+      puzzle = MazeEngine.generate(DailyPuzzle.seed(date)); selectedDate = date; trail = [0];
+      $('puzzle-date').value = date;
       startTimer();
       $('toast').hidden = true; clearTimeout(toastTimer);
-      // Store only the seed in the URL, so reloading or sharing reproduces this board.
-      try { const url = new URL(location.href); url.searchParams.set('seed',String(puzzle.seed)); history.replaceState(null,'',url); } catch (_) { /* file previews may restrict history */ }
+      // Share the date; the same Japanese calendar day always uses the same seed.
+      try { const url = new URL(location.href); url.searchParams.delete('seed'); url.searchParams.set('date',date); history.replaceState(null,'',url); } catch (_) { /* file previews may restrict history */ }
       draw();
     } catch (error) {
-      notify('迷路の生成に失敗しました。あたらしい迷路を押してください。');
+      notify('迷路の生成に失敗しました。今日の迷路を押してください。');
       console.error(error);
     } finally {
-      busy = false; $('new').disabled = false; $('new').textContent = 'あたらしい迷路';
+      busy = false; $('new').textContent = '今日の迷路'; refreshDates();
       ['reset','save-image'].forEach(id => $(id).disabled = !puzzle);
       $('maze').setAttribute('aria-busy','false');
       if (puzzle) update();
     }
   }
-  function confirmRestart(action) {
+  function confirmRestart(action,date = null) {
     if (busy || $('confirm-dialog').open) return;
-    if (!puzzle) { if (action === 'new') newPuzzle(newSeed()); return; }
-    pendingRestart = action;
-    $('confirm-title').textContent = action === 'new' ? 'あたらしい迷路に変えますか？' : 'はじめからやり直しますか？';
-    $('confirm-accept').textContent = action === 'new' ? '変更する' : 'やり直す';
+    if (!puzzle) { if (action === 'date') newPuzzle(date); return; }
+    pendingRestart = {action,date};
+    $('confirm-title').textContent = action === 'date' ? `${date.replaceAll('-','/')} の迷路に変えますか？` : 'はじめからやり直しますか？';
+    $('confirm-accept').textContent = action === 'date' ? '変更する' : 'やり直す';
     $('confirm-dialog').returnValue = '';
     $('confirm-dialog').showModal();
   }
   $('confirm-dialog').addEventListener('close', () => {
-    const action = pendingRestart; pendingRestart = null;
-    if ($('confirm-dialog').returnValue !== 'confirm' || !action || busy || !puzzle) return;
-    if (action === 'new') { newPuzzle(newSeed()); return; }
+    const pending = pendingRestart; pendingRestart = null;
+    if ($('confirm-dialog').returnValue !== 'confirm' || !pending || busy || !puzzle) return;
+    if (pending.action === 'date') { newPuzzle(pending.date); return; }
     trail = [0]; startTimer(); $('toast').hidden = true; clearTimeout(toastTimer); update();
   });
-  $('new').addEventListener('click', () => confirmRestart('new'));
+  function requestDate(date) {
+    refreshDates();
+    $('puzzle-date').value = selectedDate || DailyPuzzle.today();
+    if (!DailyPuzzle.isAllowed(date)) { notify('先月1日から今日までの日付を選んでください。'); return; }
+    if (date === selectedDate) return;
+    confirmRestart('date',date);
+  }
+  $('puzzle-date').addEventListener('change', event => requestDate(event.target.value));
+  $('puzzle-date').addEventListener('focus',refreshDates);
+  window.addEventListener('focus',refreshDates);
+  $('new').addEventListener('click', () => requestDate(DailyPuzzle.today()));
   $('undo').addEventListener('click',undo);
   $('reset').addEventListener('click', () => confirmRestart('reset'));
   $('save-image').addEventListener('click',saveImage);
   window.addEventListener('beforeprint',preparePrint);
   setInterval(updateTimer,100);
-  const rawSeed = new URLSearchParams(location.search).get('seed');
-  const seed = rawSeed !== null && /^\d{1,10}$/.test(rawSeed) && Number(rawSeed) <= 0xffffffff ? Number(rawSeed) : newSeed();
-  newPuzzle(seed);
+  refreshDates();
+  const date = DailyPuzzle.resolve(new URLSearchParams(location.search).get('date'));
+  newPuzzle(date);
 })();
 </script>
 </body>
