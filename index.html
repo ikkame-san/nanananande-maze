@@ -79,6 +79,12 @@
     .date-picker summary::after { content:""; width:8px; height:8px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:translateY(-2px) rotate(45deg); }
     .date-picker[open] summary::after { transform:translateY(2px) rotate(225deg); }
     .archive-content { padding:0 16px 16px; }
+    .about-content { padding:0 16px 16px; }
+    .about-content p { margin:0; font-size:15px; line-height:1.9; }
+    .about-links { display:grid; gap:10px; margin:16px 0 0; padding:0; list-style:none; }
+    .about-links a { display:block; padding:12px; border:1px solid #cdd6c8; border-radius:9px; color:var(--ink); font-size:15px; font-weight:700; line-height:1.6; text-underline-offset:3px; overflow-wrap:anywhere; }
+    .about-links a:hover { background:#e9eddf; }
+    .about-links span { display:block; margin-top:3px; color:#52665c; font-size:12px; font-weight:400; }
     .date-picker label { display:block; margin-bottom:9px; font-size:14px; font-weight:700; }
     .date-picker input { display:block; width:100%; min-width:0; border:1px solid #cdd6c8; border-radius:9px; padding:11px 12px; background:#fff; color:var(--ink); font:700 18px "Yu Gothic",Meiryo,sans-serif; }
     .play-card { padding:18px; background:var(--ink); color:var(--paper); border-radius:18px; }
@@ -189,6 +195,17 @@
         <div class="archive-content">
           <label for="puzzle-date">日付を選ぶ</label>
           <input type="date" id="puzzle-date" required disabled>
+        </div>
+      </details>
+      <details class="date-picker about-maze">
+        <summary>「ななななんで？」とは</summary>
+        <div class="about-content">
+          <p>「ななななんで？」は、手羽先センセーションの楽曲「恋中毒」の1サビ前に登場する歌詞です。このフレーズにちなんだ迷路です。</p>
+          <ul class="about-links">
+            <li><a href="https://www.youtube.com/watch?v=RyEeYVBRPno" target="_blank" rel="noopener noreferrer">恋中毒のライブ映像<span>YouTube · 別タブで開きます</span></a></li>
+            <li><a href="https://www.youtube.com/watch?v=dRE4MJaXcQs&amp;pp=ygUJ5oGL5Lit5q-S" target="_blank" rel="noopener noreferrer">恋中毒のダンスプラクティス<span>YouTube · 別タブで開きます</span></a></li>
+            <li><a href="https://www.tiktok.com/@tebasen/video/7652303299202403602" target="_blank" rel="noopener noreferrer">ななななんで選手権<span>TikTok · 別タブで開きます</span></a></li>
+          </ul>
         </div>
       </details>
     </aside>
